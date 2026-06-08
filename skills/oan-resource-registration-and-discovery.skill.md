@@ -276,17 +276,16 @@ Content-Type: application/json
 Root verifies the resource, creates a Root proof, archives the version, and
 queues downstream publication.
 
-### Step 4: CDN Publish and Discovery Sync
+### Step 4: CDN Publish and Discovery Visibility
 
-Depending on deployment policy, the operator or automation may trigger:
+After Root verification, Root publishes a CDN event through its outbox and NATS
+JetStream. `cdn-publisher` consumes the event, publishes the package to CDN,
+and marks it published at Root. Root then sends authorized resource summaries to
+Discovery through `/discovery/resources/sync-authorized`.
 
-```http
-POST /root/batches/publish-cdn
-POST /root/batches/notify-discovery
-```
-
-The resource is discoverable only after Root verification, CDN publish, and
-Discovery sync have completed.
+The resource is discoverable only after Root verification, CDN publication, and
+Discovery indexing have completed. Clients and tests should observe status or
+query results rather than manually driving Root batch endpoints.
 
 ## 7. Discovery Workflow
 
