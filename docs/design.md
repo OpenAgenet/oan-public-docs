@@ -22,15 +22,20 @@ OAN is split into focused repositories:
 - `oan-protocol-common`: reusable Rust protocol crates, schemas, protocol
   constants, `did:oan` helpers, credential helpers, signing helpers, resource
   package models, and storage helpers.
-- `oan-reference-services`: Rust reference services for Root, Registrar,
-  Discovery, and CDN roles.
+- `oan-root-services`: Root-side services for governance observation,
+  authorization, verification, and Root-approved publication flows.
+- `oan-registrar-node`: Registrar service for public resource onboarding and
+  registration submission.
+- `oan-discovery-node`: Discovery service for verified resource indexing and
+  signed discovery responses.
 - `oan-agent-py`: Python reference Service Agent and User Agent implementations.
 - `oan-sdk-ts`: TypeScript SDK packages for browser, Node.js, developer tools,
   and web-console usage.
-- `oan-examples`: runnable resource registration, discovery, trusted
-  invocation, and negative security examples.
+- `oan-homepage`: official public homepage, registration entry, discovery
+  entry, documentation gateway, and ecosystem visibility surface.
 - `oan-deploy`: container and deployment assets.
-- `oan-site`: public website and high-level project documentation.
+- `oan-public-docs`: public specifications, papers, architecture overview, and
+  user-facing material.
 - `oan-trial-network`: public trial network information and community node
   participation workflow.
 - `oan-operator-guides`: operator runbooks, checklists, and procedures.
@@ -117,11 +122,13 @@ material rather than trusting CDN directly.
 
 For local use:
 
-- Run infrastructure services from `oan-reference-services`.
-- Run Python demo Agents from `oan-agent-py`.
-- Run end-to-end examples from `oan-examples`.
-- Use public protocol material from `oan-site/docs` and reusable code from
+- Use the official homepage as the public registration, discovery, docs, and
+  ecosystem entry.
+- Use `oan-sdk-ts` for browser, Node.js, and developer-tool integration.
+- Use public protocol material from this repository and reusable code from
   `oan-protocol-common`.
+- Use `oan-agent-py` as a reference implementation for Service Agent and User
+  Agent behavior where appropriate.
 
 For trial-network participation:
 
@@ -134,7 +141,8 @@ For trial-network participation:
 The split repositories keep the existing local validation paths:
 
 - Rust protocol crate tests in `oan-protocol-common`.
-- Rust reference service tests in `oan-reference-services`.
+- Rust service tests in `oan-root-services`, `oan-registrar-node`, and
+  `oan-discovery-node`.
 - Python Agent compile and dependency checks in `oan-agent-py`.
-- End-to-end, resource registration, discovery, and negative trusted invocation
-  examples in `oan-examples`.
+- SDK and browser-facing workflow tests in `oan-sdk-ts`.
+- Public homepage frontend and backend checks in `oan-homepage`.

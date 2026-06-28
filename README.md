@@ -8,6 +8,14 @@ Email: jlxufly@gmail.com
 
 Public documentation and specification material for OpenAgenet / OAN.
 
+## Start Here
+
+- [Architecture overview](docs/design.md)
+- [Official homepage public guide](docs/official-homepage-public-guide.md)
+- [Resource registration and discovery guide](docs/resource-registration-and-discovery-guide.md)
+- [ANS Protocol Specification](docs/ANS%20Protocol%20Specification.md)
+- [Error codes](docs/error-codes.md)
+
 ## License
 
 Public documentation in this repository is licensed under `CC-BY-4.0` to
