@@ -424,7 +424,8 @@ The `oanMetadata` object MAY contain:
 | `recovery` | array of string | Optional | Verification method IDs or DID URLs authorized for recovery. |
 | `resourceDescription` | object | Recommended | Native semantic resource description used by OAN Discovery. |
 | `agentDescription` | object | Optional | Agent-oriented semantic description. For `agent_service` subjects, this MAY mirror or specialize `resourceDescription`, but `resourceDescription` is the primary cross-resource description field. |
-| `capabilityTags` | array of string | Optional | OAN capability-domain tags used for semantic discovery and governed filtering. |
+| `capabilityTags` | array of string | Optional | Capability labels used for semantic discovery, matching, and ranking. They are not authorization domains. |
+| `authorizedDomains` | array of string | Optional | Typed authorization-domain list for the DID subject. `[]` means no authorization. `["*"]` means all domains. For resource subjects, Registrar and Root processing require the requested domains to be covered by the Registrar's own authorized domains. For Registrar and Discovery nodes, Root authorization defines the effective domain coverage. |
 | `protocolBindings` | array | Optional | Protocol bindings such as MCP, A2A, AIP, HTTP, RPC, or custom protocols. |
 | `implementationLinks` | array | Optional | Links between Skills and implementing Agent Services, MCP Servers, or Tool APIs. |
 | `addressBindings` | array | Optional | Address or endpoint identification records. |
@@ -463,7 +464,7 @@ The object MAY contain:
 | `name` | string | Human-readable resource name. |
 | `description` | string | Narrative description of the resource. |
 | `capabilityDescription` | string | Capability-focused description. |
-| `capabilityTags` | array of string | Capability labels or governed OAN capability-domain tags. |
+| `capabilityTags` | array of string | Capability labels or phrases used as discovery signals. |
 | `useCaseExamples` | array of string | Example scenarios or user requests. |
 | `inputSchema` | object or string | Inline input schema or schema reference. |
 | `outputSchema` | object or string | Inline output schema or schema reference. |
@@ -1223,6 +1224,9 @@ and Root proof.
     "subjectType": "agent_service",
     "resourceType": "agent_service",
     "publisherDid": "did:oan:ORFI:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
+    "authorizedDomains": [
+      "finance"
+    ],
     "resourceDescription": {
       "name": "Financial Analysis Agent",
       "description": "A professional Agent Service for financial report analysis and risk summarization.",
@@ -1297,6 +1301,9 @@ and Root proof.
     "subjectType": "skill",
     "resourceType": "skill",
     "publisherDid": "did:oan:ORLG:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
+    "authorizedDomains": [
+      "legal"
+    ],
     "resourceDescription": {
       "name": "Contract Review Skill",
       "description": "A reusable Skill for reviewing contracts, extracting clauses, and identifying legal risk signals.",

@@ -69,6 +69,14 @@ Future APIs should prefer:
 - `invalid_issuer_key`
 - `invalid_request_signature`
 - `invalid_nonce_store`
+- `resource_domains_required`
+- `invalid_authorized_domains`
+- `unauthorized_domains`
+- `authorized_domains_mismatch`
+- `did_document_authorized_domains_mismatch`
+- `governance_authorized_domains_mismatch`
+- `infrastructure_authorized_domains_required`
+- `vc_issuer_authorized_domains_forbidden`
 
 ## Registrar draft validation errors
 
@@ -84,6 +92,7 @@ Future APIs should prefer:
 - `invalid_metadata_hash`
 - `invalid_root_proof`
 - `unauthorized_domains`
+- `authorized_domains_mismatch`
 - `invalid_root_key`
 
 ## Boundary rules

@@ -30,10 +30,9 @@ OAN is split into focused repositories:
   signed discovery responses.
 - `oan-agent-py`: Python reference Service Agent and User Agent implementations.
 - `oan-sdk-ts`: TypeScript SDK packages for browser, Node.js, developer tools,
-  and web-console usage.
+  and homepage-facing integrations.
 - `oan-homepage`: official public homepage, registration entry, discovery
   entry, documentation gateway, and ecosystem visibility surface.
-- `oan-deploy`: container and deployment assets.
 - `oan-public-docs`: public specifications, papers, architecture overview, and
   user-facing material.
 - `oan-trial-network`: public trial network information and community node
@@ -133,8 +132,9 @@ For local use:
 For trial-network participation:
 
 - Read node participation workflow in `oan-trial-network`.
-- Use deployment assets from `oan-deploy`.
 - Follow operational checklists in `oan-operator-guides`.
+- Use repository-local deployment material and official operations automation
+  maintained with the official OAN operations workflow.
 
 ## Current Validation
 

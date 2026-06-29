@@ -45,6 +45,7 @@ Before registering a resource, prepare:
 - resource form and `resourceType`;
 - human-readable name and description;
 - capability tags and use cases;
+- authorized domains, such as `legal` or `finance.payments`;
 - publisher or controller DID;
 - service endpoint, if the resource is callable;
 - manifest, package, schema, or download URL, if the resource has an external
@@ -57,6 +58,13 @@ Before registering a resource, prepare:
 
 Do not invent real endpoints, hashes, keys, signatures, credentials, or Root
 proofs. Draft values should be clearly marked as placeholders.
+
+`capabilityTags` and `authorizedDomains` are different fields. Capability tags
+help users and Discovery find and rank resources. `authorizedDomains` is the
+typed authorization-domain list that Registrars, Root, and Discovery use for
+admission and publication boundaries. `[]` means no authorization. `["*"]`
+means all domains, and is normally reserved for infrastructure nodes rather
+than ordinary public resources.
 
 ## DID Document Shape
 
@@ -95,6 +103,7 @@ resource type, service type, endpoint, and protocol binding.
     "subjectType": "skill",
     "resourceType": "skill",
     "publisherDid": "did:oan:ORFI:REPLACE_WITH_CONTROLLER_SUFFIX",
+    "authorizedDomains": ["example"],
     "resourceDescription": {
       "name": "Example Skill",
       "description": "Describe what the resource does in user-facing terms.",
@@ -142,6 +151,8 @@ Prepare and validate the DID Document before submitting it to a Registrar:
 - DID subject code matches `resourceType`;
 - DID Document `id` equals `resourceDid`;
 - `oanMetadata.resourceType` equals the submitted `resourceType`;
+- `oanMetadata.authorizedDomains` is present, valid, and covered by the target
+  Registrar;
 - external artifacts have declared hashes;
 - version fields are explicit.
 
@@ -154,6 +165,9 @@ Content-Type: application/json
 
 The request body should include the resource DID, resource type, DID Document,
 metadata, and signature required by the target Registrar.
+
+When the request metadata also carries `authorizedDomains`, it must match the
+DID Document's `oanMetadata.authorizedDomains`.
 
 If the Registrar uses a two-step flow, create or update the draft first, then
 submit the completed resource:
