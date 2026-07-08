@@ -16,6 +16,20 @@ together with the [W3C DID Core Recommendation](https://www.w3.org/TR/did-core/)
 The latest version of this document is available from the
 [OAN public documents repository](https://github.com/OpenAgenet/oan-public-docs/tree/main/did-oan-specs).
 
+## Intellectual Property and License Notice
+
+This specification is made publicly available by the OpenAgenet contributors.
+
+Copyright (c) 2026 OpenAgenet contributors.
+
+This document is licensed under the Creative Commons Attribution 4.0
+International License (CC BY 4.0):
+
+https://creativecommons.org/licenses/by/4.0/
+
+Code fragments, examples, and machine-readable artifacts in this specification,
+if any, are licensed under the Apache License 2.0 unless otherwise stated.
+
 ## 1. Introduction
 
 `did:oan` is a decentralized identifier method for OpenAgenet (OAN). It is
