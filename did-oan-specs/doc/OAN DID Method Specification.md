@@ -458,11 +458,18 @@ When the DID uses one of the standard subject category codes in Section 8.2,
 prevents a resource from using a trusted-looking method prefix while declaring
 an incompatible product form in the DID Document.
 
-`controllerDid` and `publisherDid` are descriptive OAN metadata fields. They
-MUST NOT be treated as DID Core controller relationships by themselves. A
-publisher or controller DID has authority over the resource only when that
-authority is also established by DID Core `controller`, a valid verification
-relationship, Root authorization, VC evidence, or another governance-recognized
+`controllerDid` and `publisherDid` are OAN metadata relationship fields. They
+MUST NOT be treated as DID Core controller relationships by themselves. When
+`controllerDid` is used as an authority claim for resource registration or
+update and differs from the resource DID, the request MUST carry a valid
+`controllerAuthorizationProof` that binds the controller DID, resource DID,
+DID Document hash, metadata hash, Registrar DID, purpose, nonce, expiry, and
+verification method. In the first implementation, `publisherDid` remains
+descriptive unless it equals the verified `controllerDid` or a later
+publisher-proof extension is defined. A publisher or controller DID has
+authority over the resource only when that authority is established by DID Core
+`controller`, a valid verification relationship, Root authorization, VC
+evidence, `controllerAuthorizationProof`, or another governance-recognized
 proof.
 
 ### 10.4 Resource Description

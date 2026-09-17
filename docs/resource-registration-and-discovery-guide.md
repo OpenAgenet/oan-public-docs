@@ -169,6 +169,16 @@ metadata, and signature required by the target Registrar.
 When the request metadata also carries `authorizedDomains`, it must match the
 DID Document's `oanMetadata.authorizedDomains`.
 
+When the DID Document declares an external `oanMetadata.controllerDid` that
+differs from the submitted resource DID, the registration request must also
+include `controllerAuthorizationProof`. The proof is signed by the controller
+identity key and binds the exact resource DID, controller DID, DID Document
+hash, metadata hash, Registrar DID, purpose, nonce, expiry, and verification
+method. Do not upload controller private key material; the Registrar and Root
+need only the public controller DID Document material and the signature proof.
+`publisherDid` is descriptive unless it equals the verified `controllerDid` or
+a future publisher-proof extension is introduced.
+
 If the Registrar uses a two-step flow, create or update the draft first, then
 submit the completed resource:
 
