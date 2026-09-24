@@ -6,6 +6,13 @@ Email: jlxufly@gmail.com
 
 # `did:oan` Method Specification
 
+> **Legacy profile-v1 baseline.** This document records the pre-upgrade
+> four-character `semantic-code` profile for migration audit and negative
+> testing only. The current implementation target is
+> [OAN DID Method Specification v2](./OAN%20DID%20Method%20Specification%20v2.md).
+> New production DIDs MUST NOT be generated or accepted under this legacy
+> profile after the v2 activation point.
+
 Version 1.1.0
 
 ## Status of This Document

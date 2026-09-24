@@ -28,15 +28,16 @@ Use `did:oan` identifiers for new resources. Use `resourceDid` as the public
 resource identifier, and use `oanMetadata.resourceType` to distinguish product
 forms.
 
-| Resource form | `resourceType` | DID subject code |
+| Resource form | `subjectType` | `resourceType` |
 | --- | --- | --- |
-| Agent Service | `agent_service` | `AG` |
-| Skill | `skill` | `SK` |
-| MCP Server | `mcp_server` | `MC` |
-| Tool / API | `tool_api` | `TL` |
+| Agent Service | `agent_instance` or `agent_service` | `agent_service` |
+| Skill | `skill` or the applicable owning subject type | `skill` |
+| MCP Server | `mcp_server` or the applicable owning subject type | `mcp_server` |
+| Tool / API | `tool_api` or the applicable owning subject type | `tool_api` |
 
-The DID subject code and `oanMetadata.resourceType` must match. For example,
-`did:oan:SKFI:...` describes a `skill`, not an MCP server.
+The DID string does not encode the resource type. Its five-character
+`registrar-code` identifies the initial Registrar source; classification comes
+from `oanMetadata.subjectType` and `oanMetadata.resourceType`.
 
 ## Metadata To Prepare
 
@@ -69,31 +70,31 @@ than ordinary public resources.
 ## DID Document Shape
 
 A Skill resource can be modeled with this minimal shape. Agent Services, MCP
-Servers, and Tool / API resources should use the matching DID subject code,
-resource type, service type, endpoint, and protocol binding.
+Servers, and Tool / API resources should use the applicable `subjectType`,
+matching resource type, service type, endpoint, and protocol binding.
 
 ```json
 {
-  "@context": ["https://www.w3.org/ns/did/v1"],
-  "id": "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX",
-  "controller": "did:oan:ORFI:REPLACE_WITH_CONTROLLER_SUFFIX",
+  "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/oan/v1"],
+  "id": "did:oan:K7mQ9:REPLACE_WITH_32_CHAR_SUFFIX",
+  "controller": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX",
   "verificationMethod": [
     {
-      "id": "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX#key-1",
+      "id": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX",
+      "controller": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX",
       "publicKeyMultibase": "REPLACE_WITH_PUBLIC_KEY"
     }
   ],
   "authentication": [
-    "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX#key-1"
+    "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1"
   ],
   "assertionMethod": [
-    "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX#key-1"
+    "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1"
   ],
   "service": [
     {
-      "id": "did:oan:SKFI:REPLACE_WITH_32_CHAR_SUFFIX#manifest",
+      "id": "did:oan:K7mQ9:REPLACE_WITH_32_CHAR_SUFFIX#manifest",
       "type": "OANSkillManifest",
       "serviceEndpoint": "https://example.org/path/to/skill.json",
       "version": "1.0.0"
@@ -102,7 +103,13 @@ resource type, service type, endpoint, and protocol binding.
   "oanMetadata": {
     "subjectType": "skill",
     "resourceType": "skill",
-    "publisherDid": "did:oan:ORFI:REPLACE_WITH_CONTROLLER_SUFFIX",
+    "publisherDid": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX",
+    "externalIdentifiers": [
+      {
+        "id": "urn:example:skill:123",
+        "resolutionServiceEndpoint": "https://example.org/resolve"
+      }
+    ],
     "authorizedDomains": ["example"],
     "resourceDescription": {
       "name": "Example Skill",
@@ -139,6 +146,16 @@ resource type, service type, endpoint, and protocol binding.
         "required": false
       }
     ]
+  },
+  "proof": {
+    "type": "Ed25519Signature2020",
+    "creator": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1",
+    "created": "REPLACE_WITH_RFC3339_TIME",
+    "proofPurpose": "assertionMethod",
+    "verificationMethod": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1",
+    "cryptoSuite": "ed25519-sha256",
+    "hashAlgorithm": "sha256",
+    "proofValue": "REPLACE_WITH_PROOF"
   }
 }
 ```
@@ -147,14 +164,19 @@ resource type, service type, endpoint, and protocol binding.
 
 Prepare and validate the DID Document before submitting it to a Registrar:
 
-- `resourceDid` starts with `did:oan:`;
-- DID subject code matches `resourceType`;
+- `resourceDid` matches `did:oan:<5 Base58 registrar-code>:<32 Base58 suffix>`;
 - DID Document `id` equals `resourceDid`;
+- top-level `controller` is present and is the authoritative control relation;
 - `oanMetadata.resourceType` equals the submitted `resourceType`;
 - `oanMetadata.authorizedDomains` is present, valid, and covered by the target
   Registrar;
 - external artifacts have declared hashes;
-- version fields are explicit.
+- version fields are explicit;
+- the top-level proof verifies after removing only the proof field;
+- the top-level proof contains `creator`, `verificationMethod`, `cryptoSuite`,
+  and `hashAlgorithm`, and `creator` equals `verificationMethod`;
+- the submitted DID Document hash equals the hash of the complete document,
+  including proof and external identifiers.
 
 The resource-oriented Registrar API accepts registration submissions through:
 
@@ -169,14 +191,14 @@ metadata, and signature required by the target Registrar.
 When the request metadata also carries `authorizedDomains`, it must match the
 DID Document's `oanMetadata.authorizedDomains`.
 
-When the DID Document declares an external `oanMetadata.controllerDid` that
-differs from the submitted resource DID, the registration request must also
-include `controllerAuthorizationProof`. The proof is signed by the controller
+When the top-level `controller` differs from the submitted resource DID, the
+registration request must also include `controllerAuthorizationProof`. The
+proof is signed by the controller
 identity key and binds the exact resource DID, controller DID, DID Document
 hash, metadata hash, Registrar DID, purpose, nonce, expiry, and verification
 method. Do not upload controller private key material; the Registrar and Root
 need only the public controller DID Document material and the signature proof.
-`publisherDid` is descriptive unless it equals the verified `controllerDid` or
+`publisherDid` is descriptive unless it equals the verified top-level controller or
 a future publisher-proof extension is introduced.
 
 If the Registrar uses a two-step flow, create or update the draft first, then
@@ -220,8 +242,12 @@ material when available.
 Before downloading or invoking a resource candidate, verify:
 
 - the DID is a valid `did:oan` identifier;
-- DID subject code matches `resourceType`;
+- the DID uses the five-character case-sensitive Registrar code profile;
+- `subjectType` and `resourceType` come from the DID Document rather than the
+  DID string;
 - DID Document `id` equals `resourceDid`;
+- the DID Document top-level proof verifies and its complete hash includes the
+  proof;
 - Root proof binds the resource DID, resource type, version, package hash, and
   metadata hash;
 - downloaded artifacts match declared hashes;
