@@ -256,18 +256,26 @@ values remain available as DID Document `oanMetadata.subjectType` and
 
 | Value | Subject category | Recommended `subjectType` |
 | --- | --- | --- |
+| `agent_instance` | Runtime Agent instance | `agent_instance` |
+| `agent_product` | Agent product or packaged Agent form | `agent_product` |
 | `agent_service` | Agent Service or Agent subject | `agent_service` |
 | `skill` | Skill | `skill` |
 | `mcp_server` | MCP Server | `mcp_server` |
 | `tool_api` | Tool / API | `tool_api` |
 | `infrastructure_node` | OAN infrastructure node | `infrastructure_node` |
+| `root_node` | OAN Root node | `root_node` |
+| `registrar_node` | OAN Registrar node | `registrar_node` |
+| `discovery_node` | OAN Discovery node | `discovery_node` |
+| `cdn_node` | OAN CDN or publication node | `cdn_node` |
+| `vc_issuer_node` | OAN-governed VC issuer node | `vc_issuer_node` |
+| `trust_indexer_node` | OAN Trust Indexer node | `trust_indexer_node` |
 | `organization` | Organization or operator subject | `organization` |
 | `developer` | Developer or individual operator subject | `developer` |
 | `unspecified` | Other or not-yet-classified subject | `unspecified` |
 
-Deployments MAY define additional values through an OAN profile or registry
-policy. These values MUST be carried in the DID Document and MUST NOT change the
-meaning of `routing-code` or `suffix-code`.
+The values in this table are the profile-v2 frozen enumeration. A future OAN
+profile MAY extend the enumeration through a separately versioned specification;
+such an extension MUST NOT change the meaning of `routing-code` or `suffix-code`.
 
 ### 8.3 ABNF
 
@@ -951,6 +959,24 @@ top-level `proof` object. The proof covers the complete DID Document content
 except the proof field itself; the resulting complete-document hash includes
 the attached proof. A change to any signed field requires regenerating the proof
 and the operation authorization evidence bound to the final hash.
+
+The profile-v2 top-level proof MUST contain the following non-empty string
+properties:
+
+| Property | Meaning |
+| --- | --- |
+| `type` | Proof type identifier. |
+| `creator` | DID URL of the signing verification method. |
+| `created` | RFC 3339 proof creation time. |
+| `proofPurpose` | Proof purpose; profile-v2 uses `assertionMethod`. |
+| `verificationMethod` | DID URL of the signing verification method. |
+| `cryptoSuite` | OAN signing and hashing suite identifier. |
+| `hashAlgorithm` | Hash algorithm used by the proof profile. |
+| `proofValue` | Encoded proof value. |
+
+For profile-v2, `creator` MUST equal `verificationMethod`, and the referenced
+verification method MUST be present in the DID Document and in the
+`assertionMethod` relationship.
 
 ## 12. State and Control Model
 

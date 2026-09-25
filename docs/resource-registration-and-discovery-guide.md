@@ -36,8 +36,9 @@ forms.
 | Tool / API | `tool_api` or the applicable owning subject type | `tool_api` |
 
 The DID string does not encode the resource type. Its five-character
-`registrar-code` identifies the initial Registrar source; classification comes
-from `oanMetadata.subjectType` and `oanMetadata.resourceType`.
+`routing-code` identifies the direct authorization or issuance source under the
+OAN layered identifier rules; classification comes from
+`oanMetadata.subjectType` and `oanMetadata.resourceType`.
 
 ## Metadata To Prepare
 
@@ -164,7 +165,7 @@ matching resource type, service type, endpoint, and protocol binding.
 
 Prepare and validate the DID Document before submitting it to a Registrar:
 
-- `resourceDid` matches `did:oan:<5 Base58 registrar-code>:<32 Base58 suffix>`;
+- `resourceDid` matches `did:oan:<5 Base58 routing-code>:<32 Base58 suffix-code>`;
 - DID Document `id` equals `resourceDid`;
 - top-level `controller` is present and is the authoritative control relation;
 - `oanMetadata.resourceType` equals the submitted `resourceType`;
