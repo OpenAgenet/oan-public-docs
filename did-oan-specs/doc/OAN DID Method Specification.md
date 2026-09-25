@@ -6,14 +6,7 @@ Email: jlxufly@gmail.com
 
 # `did:oan` Method Specification
 
-> **Legacy profile-v1 baseline.** This document records the pre-upgrade
-> four-character `semantic-code` profile for migration audit and negative
-> testing only. The current implementation target is
-> [OAN DID Method Specification v2](./OAN%20DID%20Method%20Specification%20v2.md).
-> New production DIDs MUST NOT be generated or accepted under this legacy
-> profile after the v2 activation point.
-
-Version 1.1.0
+Version 2.0.0
 
 ## Status of This Document
 
@@ -40,8 +33,15 @@ if any, are licensed under the Apache License 2.0 unless otherwise stated.
 ## 1. Introduction
 
 `did:oan` is a decentralized identifier method for OpenAgenet (OAN). It is
-designed to identify, describe, discover, distribute, and authenticate resources
-in an Agent ecosystem.
+designed to identify resources in an Agent ecosystem and to provide the DID
+Document data used by OAN applications for description, discovery, distribution,
+and authentication.
+
+This is a DID method specification, not a specification of the OAN registration
+API, bulletin or governance contract, CDN protocol, Discovery query language,
+VC profile, or node deployment procedure. Those systems may provide evidence
+used when processing a DID, but they MUST NOT change the identifier syntax or
+DID Core processing rules defined here.
 
 The method is not limited to a single business Agent. A `did:oan` DID subject
 MAY represent:
@@ -149,6 +149,12 @@ For the purposes of DID Core conformance, this specification defines:
 - DID resolution output expectations;
 - and security and privacy considerations for the method.
 
+An implementation conforms to this specification only if it applies the same
+identifier grammar, case handling, DID Document constraints, resolution
+metadata semantics, lifecycle rules, and error behavior defined here. OAN
+application components MAY impose additional authorization or policy checks,
+but such checks do not make a syntactically invalid DID valid.
+
 ## 5. Representations
 
 The primary DID Document representation defined by this specification is
@@ -175,6 +181,11 @@ OAN-specific properties such as `oanMetadata`, `resourceDescription`,
 `modelFingerprints` are method extensions. JSON-LD processors MUST either use
 the OAN method context or otherwise process these properties in a way that does
 not conflict with DID Core terms.
+
+The method does not require JSON-LD framing, a particular HTTP API, a particular
+storage system, or a particular key-management service. A resolver MUST
+preserve the meaning of the DID Document when returning another supported
+representation.
 
 ## 6. Method Name
 
@@ -211,104 +222,117 @@ interconnection, and cross-domain digital systems where:
 
 The method-specific identifier consists of two parts:
 
-1. a four-character semantic code; and
-2. a primary identifier suffix.
+1. a five-character `routing-code`; and
+2. a 32-character `suffix-code`.
 
-The four-character semantic code is structured as:
-
-- the first two characters indicate the subject category; and
-- the last two characters indicate the application domain.
+`routing-code` is a Base58 routing hint for the direct authorization or
+issuance source of the identifier. It does not encode subject category,
+application domain, authorization domain, trust level, lifecycle state, security
+status, or current authorization. Subject and resource classification is
+expressed by the DID Document.
 
 The general DID form is:
 
 ```text
-did:oan:<semantic-code>:<suffix>
+did:oan:<routing-code>:<suffix-code>
 ```
 
 Example:
 
 ```text
-did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz
+did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz
 ```
 
 In the example:
 
-- `AG` indicates the subject category; and
-- `FI` is an example application-domain code.
+- `2Xr85` is the routing hint for the direct authorization or issuance source;
+- the suffix is the subject-specific identifier material.
 
 ### 8.2 Subject Category Codes
 
-The following subject category codes are defined by this specification:
+Subject categories are no longer encoded in the DID string. The following
+values remain available as DID Document `oanMetadata.subjectType` and
+`oanMetadata.resourceType` values:
 
-| Code | Subject category | Recommended `subjectType` |
+| Value | Subject category | Recommended `subjectType` |
 | --- | --- | --- |
-| `AG` | Agent Service or Agent subject | `agent_service` |
-| `SK` | Skill | `skill` |
-| `MC` | MCP Server | `mcp_server` |
-| `TL` | Tool / API | `tool_api` |
-| `IN` | OAN infrastructure node | `infrastructure_node` |
-| `OR` | Organization or operator subject | `organization` |
-| `DV` | Developer or individual operator subject | `developer` |
-| `RS` | Reserved resource subject | deployment-defined |
+| `agent_service` | Agent Service or Agent subject | `agent_service` |
+| `skill` | Skill | `skill` |
+| `mcp_server` | MCP Server | `mcp_server` |
+| `tool_api` | Tool / API | `tool_api` |
+| `infrastructure_node` | OAN infrastructure node | `infrastructure_node` |
+| `organization` | Organization or operator subject | `organization` |
+| `developer` | Developer or individual operator subject | `developer` |
+| `unspecified` | Other or not-yet-classified subject | `unspecified` |
 
-Deployments MAY define additional subject category codes through OAN governance
-or registry policy. A deployment-defined code MUST NOT change the meaning of the
-codes above.
-
-For the subject categories defined above, the `subject-code` in the DID string
-MUST be consistent with `oanMetadata.subjectType` and
-`oanMetadata.resourceType`. For example, a DID beginning with `did:oan:SK...`
-MUST NOT be registered or indexed as an MCP Server or Tool / API resource.
-Registrars and Discovery nodes MUST reject documents where the method-level
-subject code and the declared OAN resource type conflict, unless an OAN
-governance profile explicitly defines the code as a valid alias.
+Deployments MAY define additional values through an OAN profile or registry
+policy. These values MUST be carried in the DID Document and MUST NOT change the
+meaning of `routing-code` or `suffix-code`.
 
 ### 8.3 ABNF
 
 ```abnf
-oan-did = "did:oan:" oan-specific-identifier
-oan-specific-identifier = semantic-code ":" suffix
-semantic-code = subject-code app-domain-code
-subject-code = 2(UPPER / DIGIT)
-app-domain-code = 2(UPPER / DIGIT)
-suffix = 32base58-char
-base58-char = DIGIT-NONZERO / %x41-48 / %x4A-4E / %x50-5A / %x61-6B / %x6D-7A
-UPPER = %x41-5A
-DIGIT-NONZERO = %x31-39
+oan-did = "did:oan:" routing-code ":" suffix-code
+routing-code = 5(base58-char)
+suffix-code = 32(base58-char)
+base58-char = %x31-39 / %x41-48 / %x4A-4E / %x50-5A /
+              %x61-6B / %x6D-7A
 ```
 
 Interpretation:
 
-- `semantic-code` is a four-character method-level semantic segment.
-- `subject-code` identifies the resource or subject category.
-- `app-domain-code` is a two-character application-domain code.
-- `suffix` is the primary method-specific identifier suffix. It is a fixed
+- `routing-code` is a five-character method-level routing segment.
+- `suffix-code` is the primary method-specific identifier suffix. It is a fixed
   32-character string using the Bitcoin Base58 alphabet:
   `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz`.
 
 The `did:oan` method name is lowercase and MUST be serialized as `oan`.
-`semantic-code`, `subject-code`, and `app-domain-code` MUST be serialized in
-uppercase. Resolvers MAY accept lowercase semantic-code input for usability, but
-MUST normalize semantic-code values to uppercase before lookup, comparison, or
-storage. The `suffix` is case-sensitive and MUST NOT be case-normalized.
+Both `routing-code` and `suffix-code` are case-sensitive and MUST NOT be
+case-normalized. Resolvers MUST NOT infer a resource type, authorization domain,
+role, trust level, or security status from either segment.
 
 Two `did:oan` identifiers are equivalent only when their canonical serialized
-forms are identical after method-name normalization and semantic-code
-normalization. Implementations MUST NOT treat two identifiers with different
-suffix casing as equivalent.
+forms are identical after method-name normalization. Implementations MUST NOT
+treat identifiers with different routing-code or suffix-code casing as
+equivalent.
 
-The canonical textual length of a `did:oan` DID is 45 characters:
+The canonical textual length of a `did:oan` DID is 46 characters:
 
 ```text
-8 characters for "did:oan:" + 4 characters for semantic-code + 1 colon + 32 suffix characters
+8 characters for "did:oan:" + 5 characters for routing-code + 1 colon + 32 suffix-code characters
 ```
+
+This grammar defines only the method-specific identifier. DID URLs may append
+the DID Core path, query, and fragment components; those components are not
+part of the routing-code or suffix-code and MUST NOT be included when checking
+the 46-character method-specific DID length.
+
+The routing hint follows the authorization layer that directly issues the DID:
+
+- a Root DID uses a routing-code selected under the Root method rules;
+- a Registrar, Discovery, CDN, Trust Indexer, or third-party VC issuer DID
+  uses the first five Base58 characters of the authorizing Root DID's
+  suffix-code;
+- a resource DID uses the first five Base58 characters of the authorizing
+  Registrar DID's suffix-code.
+
+The same routing-code MAY occur at different authorization layers. It is not a
+cross-layer namespace or a uniqueness key. Within one authorization layer, the
+authorizing Root or Registrar SHOULD ensure that active infrastructure
+suffix-code prefixes do not collide. Resource issuers MAY apply a different
+policy for resource suffixes; this method does not require resource prefix
+uniqueness. These same-layer checks are issuance rules enforced by the
+authorizing service, not DID resolution rules. Governance contracts and
+resolvers MUST NOT infer authorization from routing-code or perform additional
+cross-layer collision checks.
 
 ### 8.4 Identifier Generation
 
 The OAN identifier generation process is:
 
-1. Select the subject category code and application-domain code.
-2. Generate or derive identifier material with at least 160 bits of entropy or
+1. Determine the routing-code from the direct authorization source according to
+   the applicable authorization layer.
+2. Generate or derive suffix material with at least 160 bits of entropy or
    collision-resistant identifier material. The RECOMMENDED generation method
    is to sample 32 characters uniformly from the Base58 alphabet using a
    cryptographically secure random number generator and rejection sampling.
@@ -316,13 +340,13 @@ The OAN identifier generation process is:
    hash or extendable-output function over stable controller material, such as:
 
    ```text
-   OAN-DID-SUFFIX-v1 || semantic-code || canonical-controller-public-key || optional-nonce
+   OAN-DID-SUFFIX-v2 || routing-code || canonical-controller-public-key || optional-nonce
    ```
 
    The byte stream MUST then be mapped to the Base58 alphabet without modulo
    bias, for example by rejection sampling, until 32 suffix characters are
    produced.
-4. Concatenate `did:oan:`, the semantic code, `:`, and the 32-character suffix.
+4. Concatenate `did:oan:`, the routing-code, `:`, and the 32-character suffix-code.
 5. Submit the DID for creation or registration. If the canonical DID already
    exists, the creation operation MUST fail and the generator MUST use a new
    nonce or new random material.
@@ -339,11 +363,11 @@ selector.
 The DID itself is immutable. Lifecycle changes affect the DID Document and
 associated metadata, not the DID string.
 
-The generated DID MUST be globally unique within the `did:oan` method. A
-registrar or creation service MUST reject creation if the canonical DID already
-exists. When locally generated suffixes are used before registration, the
-generator SHOULD use cryptographically strong randomness, a public-key-derived
-identifier, or another collision-resistant process approved by the deployment.
+The generated DID MUST be unique within the `did:oan` method. A registrar or
+creation service MUST reject creation if the canonical DID already exists.
+When locally generated suffixes are used before registration, the generator
+SHOULD use cryptographically strong randomness, a public-key-derived identifier,
+or another collision-resistant process approved by the deployment.
 
 ## 9. Method-Specific Characteristics
 
@@ -393,6 +417,10 @@ particular, a valid representation MUST include:
 
 - `@context`
 - `id`
+- a top-level `controller` relationship when the subject is controlled by a
+  separate DID;
+- at least one applicable verification method and relationship; and
+- a top-level OAN `proof` for a production registration document.
 
 The `id` value MUST be the canonical `did:oan` DID that identifies the DID
 subject. A DID Document MUST NOT use OAN method-specific metadata to override
@@ -436,11 +464,12 @@ The `oanMetadata` object MAY contain:
 | --- | --- | --- | --- |
 | `subjectType` | string | Recommended | Subject type, such as `agent_service`, `skill`, `mcp_server`, `tool_api`, `infrastructure_node`, `organization`, or `developer`. |
 | `resourceType` | string | Recommended | Resource type used for OAN discovery and indexing. For the four initial product forms, use `agent_service`, `skill`, `mcp_server`, or `tool_api`. |
-| `nodeRole` | string | Optional | OAN infrastructure or Agent role, such as `root`, `registrar`, `discovery`, `vc-issuer`, `service-agent`, `user-agent`, or `test-agent`. |
+| `nodeRole` | string | Optional | Descriptive OAN infrastructure or Agent role. It is not an authorization input; effective infrastructure authorization comes from protected governance/request context and DID Document consistency checks. |
 | `identityType` | string | Optional | Deployment-specific identity classification. |
 | `controllerDid` | string | Optional | DID of the subject that controls, operates, or publishes this resource when different from `id` or DID Core `controller`. |
 | `publisherDid` | string | Optional | DID of the resource publisher. |
 | `issuerDid` | string | Optional | DID of a VC issuer or authorization issuer relevant to the resource. |
+| `externalIdentifiers` | array | Optional | Controller-signed declarations that associate the subject with identifiers outside the `did:oan` method. |
 | `ttl` | integer | Optional | Resolver or cache hint in seconds. |
 | `recovery` | array of string | Optional | Verification method IDs or DID URLs authorized for recovery. |
 | `resourceDescription` | object | Recommended | Native semantic resource description used by OAN Discovery. |
@@ -460,10 +489,15 @@ The `oanMetadata` object MAY contain:
 
 `subjectType` and `resourceType` SHOULD be aligned unless a deployment has a
 clear reason to distinguish identity category from resource category.
-When the DID uses one of the standard subject category codes in Section 8.2,
-`subjectType` and `resourceType` MUST also be consistent with that code. This
-prevents a resource from using a trusted-looking method prefix while declaring
-an incompatible product form in the DID Document.
+Subject and resource type values are document data; they are not derived from
+`routing-code` or `suffix-code`. A document MUST NOT use either identifier
+segment as a substitute for `subjectType`, `resourceType`, or infrastructure
+role authorization.
+
+For a production registration document, the top-level `proof` is required.
+OAN implementations MUST use the common profile proof and canonicalization
+rules, but the DID method does not define a separate transport or governance
+API for submitting it.
 
 `controllerDid` and `publisherDid` are OAN metadata relationship fields. They
 MUST NOT be treated as DID Core controller relationships by themselves. When
@@ -478,6 +512,25 @@ authority over the resource only when that authority is established by DID Core
 `controller`, a valid verification relationship, Root authorization, VC
 evidence, `controllerAuthorizationProof`, or another governance-recognized
 proof.
+
+Each `externalIdentifiers` item MUST contain a non-empty, unique `id` that is
+not a `did:oan` identifier. An optional `resolutionServiceEndpoint` MUST be an
+absolute URI without credentials; `file:`, `data:`, and `javascript:` endpoints
+are forbidden. A document MUST contain no more than 8 items, each `id` MUST be
+at most 512 characters, each endpoint at most 1024 characters, and the
+serialized array at most 8192 bytes. These values are Controller-signed
+declarations, not verified external facts. Registrar, Root, CDN, Discovery, SDK,
+and Trust Indexer implementations MUST NOT actively resolve the endpoints or
+treat them as governance or semantic-search evidence. Registration VCs MAY
+copy the external `id` but MUST NOT copy the endpoint.
+
+The top-level `proof` MUST use the OAN common proof structure and cover the
+canonical JSON representation of the complete DID Document with the `proof`
+field removed. After the proof is attached, the complete DID Document,
+including the proof, is hashed for the operation authorization evidence.
+Implementations MUST regenerate both proof and authorization evidence whenever
+any signed field changes. The DID method does not define a separate transport
+or governance API for submitting these materials.
 
 ### 10.4 Resource Description
 
@@ -569,7 +622,8 @@ For an OAN infrastructure node DID Document:
 - `service` SHOULD include operational endpoints where public discovery is
   appropriate;
 - `lifecycleState` MAY provide a local hint, but authoritative authorization is
-  determined by OAN Root and bulletin evidence.
+  determined by OAN Root and governance evidence. The DID's `routing-code` is
+  only a routing hint and MUST NOT be used as a substitute for that evidence.
 
 ### 10.6 Protocol Bindings
 
@@ -891,9 +945,12 @@ Accordingly, for `did:oan`:
 - resolver status, processing status, or representation-level diagnostics
   SHOULD be expressed in DID resolution metadata.
 
-This specification does not require top-level `created`, `updated`, or a
-top-level `proof` object as universal in-document properties, even though
-deployments MAY include timestamps or proof material where appropriate.
+`created` and `updated` SHOULD normally be expressed as DID document metadata.
+For the current OAN profile, a production registration document MUST include a
+top-level `proof` object. The proof covers the complete DID Document content
+except the proof field itself; the resulting complete-document hash includes
+the attached proof. A change to any signed field requires regenerating the proof
+and the operation authorization evidence bound to the final hash.
 
 ## 12. State and Control Model
 
@@ -985,7 +1042,12 @@ from normal authentication authority.
 Creation authorization MUST be defined by the applicable OAN registrar, Root, or
 deployment governance policy. A creation request MUST be rejected if it cannot
 prove control over the initial controller material or satisfy the creation
-authority required by the deployment.
+authority required by the deployment. For a resource issued by a Registrar, the
+resource `routing-code` MUST equal the first five Base58 characters of that
+Registrar DID's `suffix-code`. For an infrastructure DID issued under Root
+authorization, the corresponding Root-derived routing rule applies. These
+same-layer issuance checks are outside DID resolution and are not inferred from
+the identifier alone.
 
 ### 13.2 Read (Resolve)
 
@@ -1136,11 +1198,21 @@ For `did:oan`, DID document metadata MAY include:
 | `created` | string | DID creation time. |
 | `updated` | string | Last update time. |
 | `deactivated` | boolean | Whether the DID is deactivated. |
+| `versionId` | string | Method-defined identifier for the returned DID Document version, when versioning is exposed. |
+| `nextUpdate` | string | Time after which the returned document is expected to be updated, when applicable. |
+| `nextVersionId` | string | Identifier of the next document version, when known. |
+| `equivalentId` | array | Equivalent identifiers, only when the method can establish equivalence. |
+| `canonicalId` | string | Canonical identifier, only when the method defines one. |
 | `controllerState` | string | Current control state. |
 | `networkScope` | string | Current network or domain scope. |
 | `resolvedAddresses` | array | Resolved address bindings, if exposed by the resolver. |
 | `authorizationState` | string | Current OAN authorization state if known to the resolver. |
 | `packageState` | string | Current package or publication state if known. |
+
+The standard DID document metadata properties MUST use the meanings and time
+formats defined by DID Core. Method-specific metadata such as
+`authorizationState` and `packageState` is informational and MUST NOT replace
+the standard `deactivated`, `versionId`, or resolution error semantics.
 
 ### 14.3 Resolution Semantics
 
@@ -1164,6 +1236,20 @@ bulletin proof, package hash, signature, or other evidence used to determine
 the current DID Document and DID document metadata. Relying parties SHOULD NOT
 assume that an unauthenticated resolver response is authoritative merely because
 it is syntactically valid.
+
+If resolution fails, the resolver MUST return DID Resolution Metadata containing
+an `error` value and MUST NOT return a document that could be mistaken for a
+successful result. The method uses the DID Core error values:
+
+- `invalidDid` when the input does not conform to Section 8;
+- `notFound` when no DID Document can be found for a syntactically valid DID;
+- `representationNotSupported` when the requested representation is not
+  supported.
+
+Other implementation failures SHOULD use the applicable DID Resolution error
+defined by the DID Resolution specification and MUST NOT be reported as
+`notFound`. A successful resolution SHOULD include `contentType` in resolution
+metadata when a representation is returned.
 
 ## 15. Discovery and Distribution Semantics
 
@@ -1202,6 +1288,12 @@ and Root proof.
 
 ## 16. DID Document Examples
 
+The examples in this section focus on subject, service, and OAN metadata
+structure. A production registration document MUST additionally include the
+top-level `proof` and follow the proof/hash ordering defined in Sections 10 and
+11; abbreviated examples MUST NOT be interpreted as proof-free production
+documents.
+
 ### 16.1 Agent Service Example
 
 ```json
@@ -1210,20 +1302,20 @@ and Root proof.
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/oan/v1"
   ],
-  "id": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
-  "controller": "did:oan:ORFI:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
+  "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
+  "controller": "did:oan:2Xr85:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
   "verificationMethod": [
     {
-      "id": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1",
+      "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
+      "controller": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
       "cryptoSuite": "ed25519-sha256",
       "publicKeyMultibase": "z6Mkexample"
     },
     {
-      "id": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#sm2-1",
+      "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#sm2-1",
       "type": "SM2VerificationKey2020",
-      "controller": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
+      "controller": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
       "cryptoSuite": "sm2-sm3",
       "publicKeyJwk": {
         "kty": "EC",
@@ -1234,14 +1326,14 @@ and Root proof.
     }
   ],
   "authentication": [
-    "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1"
+    "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1"
   ],
   "assertionMethod": [
-    "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1"
+    "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1"
   ],
   "service": [
     {
-      "id": "did:oan:AGFI:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#agent-endpoint",
+      "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#agent-endpoint",
       "type": "OANAgentService",
       "serviceEndpoint": "https://agent.example.org/api",
       "protocol": "a2a",
@@ -1251,7 +1343,7 @@ and Root proof.
   "oanMetadata": {
     "subjectType": "agent_service",
     "resourceType": "agent_service",
-    "publisherDid": "did:oan:ORFI:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
+    "publisherDid": "did:oan:2Xr85:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
     "authorizedDomains": [
       "finance"
     ],
@@ -1302,23 +1394,23 @@ and Root proof.
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/oan/v1"
   ],
-  "id": "did:oan:SKLG:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
-  "controller": "did:oan:ORLG:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
+  "id": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
+  "controller": "did:oan:2Xr85:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
   "verificationMethod": [
     {
-      "id": "did:oan:SKLG:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#key-1",
+      "id": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#key-1",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:oan:SKLG:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
+      "controller": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
       "cryptoSuite": "ed25519-sha256",
       "publicKeyMultibase": "z6Mkskillexample"
     }
   ],
   "authentication": [
-    "did:oan:SKLG:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#key-1"
+    "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#key-1"
   ],
   "service": [
     {
-      "id": "did:oan:SKLG:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#manifest",
+      "id": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#manifest",
       "type": "OANSkillManifest",
       "serviceEndpoint": "https://github.com/example-org/contract-review-skill/releases/download/v1.0.0/skill.json",
       "protocol": "https",
@@ -1328,7 +1420,7 @@ and Root proof.
   "oanMetadata": {
     "subjectType": "skill",
     "resourceType": "skill",
-    "publisherDid": "did:oan:ORLG:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
+    "publisherDid": "did:oan:2Xr85:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
     "authorizedDomains": [
       "legal"
     ],
@@ -1349,8 +1441,8 @@ and Root proof.
     "implementationLinks": [
       {
         "relation": "implemented_by",
-        "targetDid": "did:oan:AGLG:9MaT4Xq6VnRb2Yp7Wc3Zd8Ef5GjKsHuL",
-        "targetService": "did:oan:AGLG:9MaT4Xq6VnRb2Yp7Wc3Zd8Ef5GjKsHuL#agent-endpoint"
+        "targetDid": "did:oan:2Xr85:9MaT4Xq6VnRb2Yp7Wc3Zd8Ef5GjKsHuL",
+        "targetService": "did:oan:2Xr85:9MaT4Xq6VnRb2Yp7Wc3Zd8Ef5GjKsHuL#agent-endpoint"
       }
     ],
     "packageInfo": {
@@ -1375,11 +1467,11 @@ and Root proof.
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/oan/v1"
   ],
-  "id": "did:oan:MCLG:3NqV7Yp5TxRb9Wc2Md6Za4Ef8GhKsJuL",
-  "controller": "did:oan:ORLG:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
+  "id": "did:oan:2Xr85:3NqV7Yp5TxRb9Wc2Md6Za4Ef8GhKsJuL",
+  "controller": "did:oan:2Xr85:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
   "service": [
     {
-      "id": "did:oan:MCLG:3NqV7Yp5TxRb9Wc2Md6Za4Ef8GhKsJuL#mcp",
+      "id": "did:oan:2Xr85:3NqV7Yp5TxRb9Wc2Md6Za4Ef8GhKsJuL#mcp",
       "type": "OANMCPServer",
       "serviceEndpoint": "https://mcp.example.org/legal",
       "protocol": "mcp",
@@ -1425,11 +1517,11 @@ and Root proof.
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/oan/v1"
   ],
-  "id": "did:oan:TLFI:7BcD3Fg5HjK8Mn9Pq2Rs4Tv6WxYzA1Ee",
-  "controller": "did:oan:ORFI:2QwR6Ty8VpXc3Mb7Nz4Fd9Gh5KsJeLuA",
+  "id": "did:oan:2Xr85:7BcD3Fg5HjK8Mn9Pq2Rs4Tv6WxYzA1Ee",
+  "controller": "did:oan:2Xr85:2QwR6Ty8VpXc3Mb7Nz4Fd9Gh5KsJeLuA",
   "service": [
     {
-      "id": "did:oan:TLFI:7BcD3Fg5HjK8Mn9Pq2Rs4Tv6WxYzA1Ee#api",
+      "id": "did:oan:2Xr85:7BcD3Fg5HjK8Mn9Pq2Rs4Tv6WxYzA1Ee#api",
       "type": "OANToolAPI",
       "serviceEndpoint": "https://api.example.org/risk-score",
       "protocol": "https",
@@ -1457,7 +1549,7 @@ and Root proof.
       {
         "purpose": "invoke",
         "credentialType": "OANServiceAccessCredential",
-        "issuer": "did:oan:INFI:6JrTn2Qw8VcY5LpM9XzA3Bd4Ef7GhKsU",
+        "issuer": "did:oan:2Xr85:6JrTn2Qw8VcY5LpM9XzA3Bd4Ef7GhKsU",
         "required": true
       }
     ]
@@ -1547,16 +1639,16 @@ state before trusted use.
 
 ### 18.8 Identifier Confusion and Normalization
 
-Because the method-specific identifier contains both semantic-code and
-case-sensitive suffix material, implementations MUST apply the normalization
-rules in Section 8 consistently. Inconsistent case normalization can cause two
-different DIDs to be treated as the same identifier, or one DID to be
-unresolvable in some resolvers.
+Because both `routing-code` and `suffix-code` are case-sensitive, implementations
+MUST apply the canonical serialization rules in Section 8 consistently.
+Inconsistent case handling can cause two different DIDs to be treated as the
+same identifier, or one DID to be unresolvable in some resolvers.
 
-Registrars and Discovery nodes MUST also enforce consistency between the
-method-level subject code and the declared `subjectType` and `resourceType`.
-Otherwise, an attacker could register a DID with a misleading category prefix
-and publish metadata for a different product form.
+Implementations MUST NOT infer subject category, authorization domain, role,
+trust level, or security status from either identifier segment. Registrars and
+Discovery nodes MUST validate `oanMetadata.subjectType` and
+`oanMetadata.resourceType` as document data and MUST NOT reconstruct those
+values from `routing-code`.
 
 ### 18.9 Version and Package Downgrade
 
