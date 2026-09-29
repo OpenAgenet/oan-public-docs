@@ -275,7 +275,6 @@ values remain available as DID Document `oanMetadata.subjectType` and
 | `discovery_node` | OAN Discovery node | `discovery_node` |
 | `cdn_node` | OAN CDN or publication node | `cdn_node` |
 | `vc_issuer_node` | OAN-governed VC issuer node | `vc_issuer_node` |
-| `trust_indexer_node` | OAN Trust Indexer node | `trust_indexer_node` |
 | `organization` | Organization or operator subject | `organization` |
 | `developer` | Developer or individual operator subject | `developer` |
 | `unspecified` | Other or not-yet-classified subject | `unspecified` |
@@ -325,7 +324,7 @@ the 46-character method-specific DID length.
 The routing hint follows the authorization layer that directly issues the DID:
 
 - a Root DID uses a routing-code selected under the Root method rules;
-- a Registrar, Discovery, CDN, Trust Indexer, or third-party VC issuer DID
+- a Registrar, Discovery, CDN, or third-party VC issuer DID
   uses the first five Base58 characters of the authorizing Root DID's
   suffix-code;
 - a resource DID uses the first five Base58 characters of the authorizing
@@ -422,6 +421,23 @@ The distinctive characteristics of `did:oan` are:
    hashes, and policy references. Such fields are declarations or references;
    authoritative status MUST be established by the applicable external
    authorization system.
+
+   When a DID Document or an associated VC includes a `credentialStatus`
+   reference, that reference identifies the status service operated or designated
+   by the VC issuer. A status value embedded in a VC is a signing-time or
+   cache-time assertion and MUST NOT be treated as the current status without
+   querying that issuer status service. The `did:oan` method does not define one
+   global VC-status service: a Root, Registrar, or third-party VC issuer MAY
+   expose its own read-only status endpoint for credentials that it issued.
+   The endpoint SHOULD be publicly readable and SHOULD expose the credential ID,
+   issuer DID, subject DID, current status, observation time, and any version or
+   event reference needed to interpret the response.
+
+   Other systems MAY maintain independent status observations, but those
+   observations are outside the `did:oan` method. They MUST NOT be represented
+   as the issuer's status response unless the issuer explicitly adopts and
+   operates that service. Consumers SHOULD keep an issuer status response
+   distinct from any independent application or deployment observation.
 
 ## 10. DID Document Requirements
 
@@ -1009,6 +1025,14 @@ remains active. Conversely, DID deactivation makes the resource subject inactive
 even if older package artifacts are still reachable from caches or archives.
 Discovery results SHOULD distinguish resource lifecycle state from package
 version lifecycle state when both are present.
+
+VC lifecycle is a third, independent state dimension. A VC MAY be revoked or
+superseded while its subject DID remains active, and an active DID does not make
+every VC issued for that DID current. A relying party MUST therefore distinguish
+DID resolution state, package-version state, and VC credential state. The current
+VC state is obtained from the issuer's `credentialStatus` service when one is
+declared. Any independent application or deployment observation is outside this
+method and MUST remain distinct from the issuer's VC status.
 
 In addition, the method distinguishes among:
 
