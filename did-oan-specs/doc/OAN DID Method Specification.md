@@ -6,12 +6,11 @@ Email: jlxufly@gmail.com
 
 # `did:oan` Method Specification
 
-Version 2.0.0
-
 ## Status of This Document
 
 This document specifies the `did:oan` DID method. It is intended to be read
-together with the [W3C DID Core Recommendation](https://www.w3.org/TR/did-core/).
+together with the [W3C DID Core Recommendation](https://www.w3.org/TR/did-core/)
+and the [DID Resolution specification](https://w3c-ccg.github.io/did-resolution/).
 
 The latest version of this document is available from the
 [OAN public documents repository](https://github.com/OpenAgenet/oan-public-docs/tree/main/did-oan-specs).
@@ -33,9 +32,9 @@ if any, are licensed under the Apache License 2.0 unless otherwise stated.
 ## 1. Introduction
 
 `did:oan` is a decentralized identifier method for OpenAgenet (OAN). It is
-designed to identify resources in an Agent ecosystem and to provide the DID
-Document data used by OAN applications for description, discovery, distribution,
-and authentication.
+designed to identify resources in an Agent ecosystem and to provide DID
+Documents that applications can use for description, service binding,
+authentication, and verifiable references.
 
 This is a DID method specification, not a specification of the OAN registration
 API, bulletin or governance contract, CDN protocol, Discovery query language,
@@ -59,14 +58,11 @@ expanding the subject model so that OAN can support multiple Agent-product
 forms through one identity and trust layer.
 
 In OAN, a DID Document is not only a key document. It is also the canonical
-identity-facing surface for basic semantic description, discovery entry points,
-service bindings, controller relationships, and verification bootstrap. More
-complete payloads MAY be referenced as hashed manifests, downloads, or
-service-hosted files, but the DID Document SHOULD contain enough semantic
-information for Discovery nodes to index the resource and match user needs.
-Root and CDN distribution in OAN concerns DID Documents, resource metadata,
-hashes, references, and proof material rather than user-facing artifact
-hosting.
+identity-facing surface for basic semantic description, service bindings,
+controller relationships, and verification bootstrap. More complete payloads
+MAY be referenced as hashed manifests, downloads, or service-hosted files, but
+the DID Document SHOULD contain enough semantic information for applications
+to index or match the resource.
 
 ## 2. Design Goals
 
@@ -84,10 +80,11 @@ The `did:oan` method is designed to satisfy the following goals:
 6. Support address identification across chains, domains, accounts,
    communication systems, or deployment environments.
 7. Support optional large-model fingerprint bindings for AI-related subjects.
-8. Support OAN-specific lifecycle, governance, and authorization semantics while
-   remaining compatible with DID Core processing.
-9. Support national-cryptography-compatible deployments through the OAN SM2/SM3
-   profile while allowing Ed25519 deployments.
+8. Support OAN-specific lifecycle and authorization references while remaining
+   compatible with DID Core processing.
+9. Allow deployments to define additional cryptographic profiles without
+   changing the `did:oan` identifier syntax or the baseline proof profile in
+   this specification.
 
 ## 3. Why a New DID Method Is Necessary
 
@@ -117,10 +114,9 @@ themselves, require or standardize several semantics that are central to OAN:
    OAN resources need service, routing, manifest, download, account, domain, and
    network bindings that can be verified and indexed.
 
-6. **Lifecycle and governance awareness**
-   OAN Root, bulletin, and Discovery services need a method-level place for
-   lifecycle hints, authorization state references, package hashes, and policy
-   references.
+6. **Lifecycle and authorization references**
+   OAN applications need a method-level place for lifecycle hints,
+   authorization-state references, package hashes, and policy references.
 
 If these properties were left entirely to application-specific conventions,
 different OAN implementations could interpret them inconsistently.
@@ -136,16 +132,18 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**,
 This specification conforms to the W3C DID Core data model and terminology.
 Where this method introduces additional properties, those properties are
 method-specific extensions and MUST NOT invalidate DID Core processing
-expectations.
+expectations. The method-specific rules in this document apply only to
+`did:oan` identifiers and DID Documents; an application or governance system
+MAY impose additional rules without changing method conformance.
 
-For the purposes of DID Core conformance, this specification defines:
+For the purposes of DID method conformance, this specification defines:
 
 - the method name;
 - the method-specific identifier syntax;
 - identifier generation and uniqueness expectations;
 - DID Document requirements and method-specific extensions;
-- creation, resolution, update, recovery, suspension, authorization-revocation,
-  and deactivation operations;
+- the abstract meaning and authorization requirements of creation, resolution,
+  update, recovery, suspension, authorization-revocation, and deactivation;
 - DID resolution output expectations;
 - and security and privacy considerations for the method.
 
@@ -166,14 +164,23 @@ When a `did:oan` DID Document is represented as JSON-LD:
 - it MUST include `id`;
 - and the `@context` value MUST include `https://www.w3.org/ns/did/v1`.
 
-The OAN method context SHOULD be included when OAN-specific properties are used:
+When OAN-specific properties are used, the `@context` value MUST include:
 
 ```json
-"https://w3id.org/oan/v1"
+[
+  "https://www.w3.org/ns/did/v1",
+  "https://openagenet.xyz/did-oan-specs/v1",
+  "https://w3id.org/security/suites/ed25519-2020/v1"
+]
 ```
 
+The OAN method context is `https://openagenet.xyz/did-oan-specs/v1`.
+The Ed25519 security-suite context is part of the required `did:oan` JSON-LD
+context set and MUST be present in conforming `did:oan` DID Documents.
+
 Implementations MAY support additional compatible representations as long as
-DID Core processing expectations remain satisfied.
+DID Core processing expectations remain satisfied and the method-specific
+meaning of the document is preserved.
 
 OAN-specific properties such as `oanMetadata`, `resourceDescription`,
 `protocolBindings`, `implementationLinks`, `addressBindings`,
@@ -273,8 +280,8 @@ values remain available as DID Document `oanMetadata.subjectType` and
 | `developer` | Developer or individual operator subject | `developer` |
 | `unspecified` | Other or not-yet-classified subject | `unspecified` |
 
-The values in this table are the profile-v2 frozen enumeration. A future OAN
-profile MAY extend the enumeration through a separately versioned specification;
+The values in this table are the initial OAN enumeration. A future OAN
+specification MAY extend the enumeration;
 such an extension MUST NOT change the meaning of `routing-code` or `suffix-code`.
 
 ### 8.3 ABNF
@@ -410,11 +417,11 @@ The distinctive characteristics of `did:oan` are:
    DID Documents MAY expose model fingerprint information when the subject is an
    AI system, model-backed Agent Service, or AI-related resource.
 
-8. **OAN lifecycle and authorization awareness**
-   DID Documents MAY include lifecycle hints, Root proof references, bulletin
-   references, package hashes, and policy hashes. Authoritative lifecycle and
-   authorization state is defined by OAN Root and bulletin evidence, not by
-   self-asserted hints alone.
+8. **OAN lifecycle and authorization references**
+   DID Documents MAY include lifecycle hints, authorization references, package
+   hashes, and policy references. Such fields are declarations or references;
+   authoritative status MUST be established by the applicable external
+   authorization system.
 
 ## 10. DID Document Requirements
 
@@ -428,13 +435,19 @@ particular, a valid representation MUST include:
 - a top-level `controller` relationship when the subject is controlled by a
   separate DID;
 - at least one applicable verification method and relationship; and
-- a top-level OAN `proof` for a production registration document.
+- a top-level `proof` for a published DID Document.
 
 The `id` value MUST be the canonical `did:oan` DID that identifies the DID
 subject. A DID Document MUST NOT use OAN method-specific metadata to override
 the DID Core meaning of `id`, `controller`, `verificationMethod`,
 `authentication`, `assertionMethod`, `keyAgreement`, `capabilityInvocation`,
 `capabilityDelegation`, `service`, or `alsoKnownAs`.
+
+When the top-level `controller` is a different DID, that controller DID SHOULD
+resolve to a DID Document whose `controller` is itself and whose verification
+relationships expose the public key used to authorize the controlled document.
+The controller DID and its document are separate from any registration or
+authorization credential.
 
 The document MAY also include standard DID Core properties such as:
 
@@ -472,7 +485,6 @@ The `oanMetadata` object MAY contain:
 | --- | --- | --- | --- |
 | `subjectType` | string | Recommended | Subject type, such as `agent_service`, `skill`, `mcp_server`, `tool_api`, `infrastructure_node`, `organization`, or `developer`. |
 | `resourceType` | string | Recommended | Resource type used for OAN discovery and indexing. For the four initial product forms, use `agent_service`, `skill`, `mcp_server`, or `tool_api`. |
-| `nodeRole` | string | Optional | Descriptive OAN infrastructure or Agent role. It is not an authorization input; effective infrastructure authorization comes from protected governance/request context and DID Document consistency checks. |
 | `identityType` | string | Optional | Deployment-specific identity classification. |
 | `controllerDid` | string | Optional | DID of the subject that controls, operates, or publishes this resource when different from `id` or DID Core `controller`. |
 | `publisherDid` | string | Optional | DID of the resource publisher. |
@@ -483,13 +495,13 @@ The `oanMetadata` object MAY contain:
 | `resourceDescription` | object | Recommended | Native semantic resource description used by OAN Discovery. |
 | `agentDescription` | object | Optional | Agent-oriented semantic description. For `agent_service` subjects, this MAY mirror or specialize `resourceDescription`, but `resourceDescription` is the primary cross-resource description field. |
 | `capabilityTags` | array of string | Optional | Capability labels used for semantic discovery, matching, and ranking. They are not authorization domains. |
-| `authorizedDomains` | array of string | Optional | Typed authorization-domain list for the DID subject. `[]` means no authorization. `["*"]` means all domains. For resource subjects, Registrar and Root processing require the requested domains to be covered by the Registrar's own authorized domains. For Registrar and Discovery nodes, Root authorization defines the effective domain coverage. |
+| `authorizedDomains` | array of string | Optional | Typed authorization-domain declaration for the DID subject. `[]` means no declared domain and `["*"]` means all domains. The meaning and enforcement of domain authorization are defined by an external OAN authorization system, not by DID resolution. |
 | `protocolBindings` | array | Optional | Protocol bindings such as MCP, A2A, AIP, HTTP, RPC, or custom protocols. |
 | `implementationLinks` | array | Optional | Links between Skills and implementing Agent Services, MCP Servers, or Tool APIs. |
 | `addressBindings` | array | Optional | Address or endpoint identification records. |
 | `delegationChain` | array | Optional | Delegation records relevant to control or scoped capability. |
 | `credentialRequirements` | array | Optional | VC or credential requirements for download, invocation, update, or session setup. |
-| `packageInfo` | object | Optional | Manifest, download, hash, Root proof, bulletin, and version metadata for the resource. |
+| `packageInfo` | object | Optional | Manifest, download, content hash, and version metadata for the resource. |
 | `modelFingerprints` | array | Optional | Large-model fingerprint bindings for AI-related subjects. |
 | `servicePolicy` | string | Optional | Service-discovery, routing, or access policy label. |
 | `networkScope` | string | Optional | Network, ecosystem, or domain scope label. |
@@ -502,43 +514,35 @@ Subject and resource type values are document data; they are not derived from
 segment as a substitute for `subjectType`, `resourceType`, or infrastructure
 role authorization.
 
-For a production registration document, the top-level `proof` is required.
-OAN implementations MUST use the common profile proof and canonicalization
-rules, but the DID method does not define a separate transport or governance
-API for submitting it.
+For a conforming `did:oan` DID Document that is published for use, the
+top-level `proof` is required. The proof rules are defined in Section 11. This
+requirement does not define a registration API, governance transport, or
+authorization workflow.
 
 `controllerDid` and `publisherDid` are OAN metadata relationship fields. They
 MUST NOT be treated as DID Core controller relationships by themselves. When
-`controllerDid` is used as an authority claim for resource registration or
-update and differs from the resource DID, the request MUST carry a valid
-`controllerAuthorizationProof` that binds the controller DID, resource DID,
-DID Document hash, metadata hash, Registrar DID, purpose, nonce, expiry, and
-verification method. In the first implementation, `publisherDid` remains
-descriptive unless it equals the verified `controllerDid` or a later
-publisher-proof extension is defined. A publisher or controller DID has
+these fields are used as authority claims, the application processing the claim
+MUST obtain independent proof that binds the controller, subject, signed
+document, purpose, and verification method. A publisher or controller DID has
 authority over the resource only when that authority is established by DID Core
-`controller`, a valid verification relationship, Root authorization, VC
-evidence, `controllerAuthorizationProof`, or another governance-recognized
-proof.
+`controller`, a valid verification relationship, or independently verifiable
+authorization evidence.
 
 Each `externalIdentifiers` item MUST contain a non-empty, unique `id` that is
 not a `did:oan` identifier. An optional `resolutionServiceEndpoint` MUST be an
 absolute URI without credentials; `file:`, `data:`, and `javascript:` endpoints
 are forbidden. A document MUST contain no more than 8 items, each `id` MUST be
 at most 512 characters, each endpoint at most 1024 characters, and the
-serialized array at most 8192 bytes. These values are Controller-signed
-declarations, not verified external facts. Registrar, Root, CDN, Discovery, SDK,
-and Trust Indexer implementations MUST NOT actively resolve the endpoints or
-treat them as governance or semantic-search evidence. Registration VCs MAY
-copy the external `id` but MUST NOT copy the endpoint.
+serialized array at most 8192 bytes. These values are controller-signed
+declarations, not verified external facts. Consumers MUST NOT treat them as
+verified external facts merely because an endpoint is present, and SHOULD NOT
+resolve the endpoint as part of DID method processing.
 
-The top-level `proof` MUST use the OAN common proof structure and cover the
-canonical JSON representation of the complete DID Document with the `proof`
-field removed. After the proof is attached, the complete DID Document,
-including the proof, is hashed for the operation authorization evidence.
-Implementations MUST regenerate both proof and authorization evidence whenever
-any signed field changes. The DID method does not define a separate transport
-or governance API for submitting these materials.
+The top-level `proof` MUST use the proof structure in Section 11 and cover the
+complete DID Document according to the Ed25519Signature2020 Data Integrity
+processing rules. Implementations MUST regenerate the proof whenever any signed
+field changes. Any additional operation-authorization evidence is outside the
+DID method and MUST NOT be confused with the DID Document proof.
 
 ### 10.4 Resource Description
 
@@ -565,8 +569,7 @@ The object MAY contain:
 
 The description is intended for discovery, routing, and interoperability. It
 MUST NOT be treated as a substitute for cryptographic controller information,
-Root proof, package hash verification, VC verification, or executable access
-policy.
+package hash verification, VC verification, or executable access policy.
 
 ### 10.5 Subject-Type Profiles
 
@@ -625,13 +628,16 @@ For a Tool / API DID Document:
 For an OAN infrastructure node DID Document:
 
 - `subjectType` SHOULD be `infrastructure_node`;
-- `nodeRole` SHOULD describe the role, such as `root`, `registrar`,
-  `discovery`, or `vc-issuer`;
 - `service` SHOULD include operational endpoints where public discovery is
   appropriate;
 - `lifecycleState` MAY provide a local hint, but authoritative authorization is
-  determined by OAN Root and governance evidence. The DID's `routing-code` is
-  only a routing hint and MUST NOT be used as a substitute for that evidence.
+  determined by the applicable external authorization system. The DID's
+  `routing-code` is only a routing hint and MUST NOT be used as a substitute
+  for that evidence.
+
+Infrastructure role and authorization MUST be expressed through the DID
+Document's subject/resource data, DID Core relationships, and external
+authorization evidence. This method does not define a `nodeRole` property.
 
 ### 10.6 Protocol Bindings
 
@@ -682,8 +688,7 @@ verification between two Agent Services.
 
 ### 10.9 Package Information
 
-`packageInfo` MAY contain manifest, download, hash, Root proof, bulletin, and
-version information:
+`packageInfo` MAY contain manifest, download, hash, and version information:
 
 | Property | Type | Description |
 | --- | --- | --- |
@@ -691,8 +696,6 @@ version information:
 | `downloadUrl` | string | URL for a downloadable file or package. |
 | `packageHash` | string | Hash of the package, including an explicit algorithm identifier. |
 | `metadataHash` | string | Hash of the metadata, including an explicit algorithm identifier. |
-| `rootProofRef` | string | Reference to Root proof material. |
-| `bulletinRef` | string | Reference to OAN bulletin event or authorization state. |
 | `version` | string | Resource package version. |
 | `versionScheme` | string | Version scheme, such as `semver`, `date`, `sequence`, or deployment-defined value. |
 | `previousVersion` | string | Previous package version for this resource DID, if any. |
@@ -701,15 +704,13 @@ version information:
 | `updatedAt` | string | RFC 3339 package update timestamp. |
 | `expiresAt` | string | Optional RFC 3339 package expiration timestamp. |
 
-Discovery nodes MAY return user-facing artifact references declared in the DID
+Applications MAY return user-facing artifact references declared in the DID
 Document or resource metadata. The referenced artifacts may be hosted by
 providers, public code repositories, object stores, institutional artifact
 servers, or deployment-specific hosting channels. Discovery nodes are
-responsible for semantic discovery over Root-approved DID Documents and
-resource metadata; they are not required or expected by this method to host,
-cache, proxy, or serve DID Document-external artifacts. CDN services are
-Root-to-Discovery distribution infrastructure and are not trust authorities or
-user-facing artifact hosting requirements.
+not required or expected by this method to host, cache, proxy, or serve
+DID Document-external artifacts. This method does not require any particular
+discovery, distribution, CDN, caching, proxy, or artifact-hosting architecture.
 
 Hash values in `packageInfo` SHOULD use an unambiguous algorithm-prefixed form,
 such as `sha256:<hex>` or a deployment-defined multihash representation.
@@ -737,8 +738,8 @@ OAN distinguishes three version layers:
 1. **Resource identity**
    The `did:oan` DID identifies the resource across normal releases.
 2. **Resource package version**
-   `oanMetadata.packageInfo.version` identifies a specific Root-verified
-   package or manifest release for the resource DID.
+   `oanMetadata.packageInfo.version` identifies a specific package or manifest
+   release for the resource DID.
 3. **Protocol or interface version**
    `oanMetadata.protocolBindings[*].version` and `service[*].version` identify
    the protocol, endpoint, or interface version used for interaction.
@@ -747,7 +748,7 @@ A new package version SHOULD be published when a resource changes its semantic
 description, package payload, protocol binding, endpoint contract, credential
 requirements, implementation links, or policy-relevant metadata.
 
-Root proof for a versioned resource package SHOULD bind at least:
+An external package-integrity proof for a versioned resource SHOULD bind at least:
 
 ```text
 resourceDid + resourceType + version + packageHash + metadataHash
@@ -755,10 +756,11 @@ resourceDid + resourceType + version + packageHash + metadataHash
 
 The bound values SHOULD be taken from the canonical DID Document and
 `oanMetadata.packageInfo` after applying the deployment's canonical JSON
-serialization rules. The proof SHOULD also identify the hash algorithms used
-for `packageHash` and `metadataHash`. A verifier MUST reject a package proof if
-the DID, resource type, version, package hash, metadata hash, or hash algorithm
-does not match the resolved resource metadata.
+serialization rules. The proof SHOULD identify the hash algorithms used for
+`packageHash` and `metadataHash`. A verifier MUST reject a package proof if the
+DID, resource type, version, package hash, metadata hash, or hash algorithm does
+not match the resolved resource metadata. This package proof is separate from
+the DID Document proof defined in Section 11.
 
 The resource DID SHOULD remain stable across ordinary version upgrades,
 including non-breaking capability updates, schema additions, endpoint
@@ -769,10 +771,10 @@ confuse relying parties if represented as another version of the same resource,
 such as a change of core resource identity, controller domain, trust boundary,
 or primary product semantics.
 
-Discovery nodes SHOULD return the latest active package version by default.
-They MAY support queries for historical versions, version constraints, or a
-specific package hash. When a historical version is returned, the response
-SHOULD make the version, package hash, Root proof, and lifecycle state explicit.
+Applications that provide package discovery MAY return the latest active package
+version by default and MAY support historical-version queries. When a
+historical version is returned, the response SHOULD make the version, package
+hash, external authorization evidence, and lifecycle state explicit.
 DID resolution returns the current DID Document state for the DID. Historical
 package lookup is a Discovery, package registry, or deployment-specific
 function unless a resolver explicitly supports version-aware resolution
@@ -868,39 +870,24 @@ delegation, package, or fingerprint semantics.
 The DID Document SHOULD use DID Core `verificationMethod` rather than the legacy
 `publicKey` property.
 
-Supported verification method types MAY include:
+The baseline verification method type defined by this specification is:
 
 - `Ed25519VerificationKey2020`
-- `SM2VerificationKey2020`
 
 At least one verification method referenced from `authentication` or
 `assertionMethod` SHOULD be present unless the DID is permanently deactivated.
 
-OAN implementations SHOULD use the `cryptoSuite` field on verification methods
-and proofs when the verification method type alone is not sufficient to select
-the signing and hashing suite.
+Ed25519 verification material MUST be sufficient for a verifier to reconstruct
+the public key. A JWK representation MUST use `kty: "OKP"` and
+`crv: "Ed25519"`. The `alg` member, when present, MUST be `"EdDSA"`;
+`"Ed25519"` is not a valid JOSE algorithm value for this method.
 
-The following crypto suites are defined for OAN compatibility. The DID string
-itself does not encode the cryptographic algorithm; algorithm selection is
-declared by DID Core verification methods and proof metadata.
+The method does not add `cryptoSuite` or `hashAlgorithm` members to verification
+methods or proofs. The proof type and its suite define the signature processing.
+A deployment MAY define an additional cryptographic profile in a separate
+specification, but such a profile MUST NOT change the identifier grammar or be
+presented as the baseline Ed25519 proof.
 
-| `cryptoSuite` | Verification method type | Proof type | Signing algorithm | Hash algorithm | DID suffix impact |
-| --- | --- | --- | --- | --- | --- |
-| `ed25519-sha256-legacy` | `Ed25519VerificationKey2020` | `Ed25519Signature2020` | Ed25519 | SHA-256 legacy canonical hash input | None; retained only for historical proof verification |
-| `ed25519-sha256` | `Ed25519VerificationKey2020` | `Ed25519Signature2020` | Ed25519 | SHA-256 | None |
-| `sm2-sm3` | `SM2VerificationKey2020` | `SM2Signature2020` | SM2 | SM3 | None |
-
-The `sm2-sm3` suite is the OAN profile for SM2 signing with SM3 hashing. A
-verifier that supports `sm2-sm3` MUST verify both the `cryptoSuite` value and the
-verification method key material before accepting a signature.
-
-Where `publicKeyJwk` is used for SM2, the JWK SHOULD identify the key type and
-curve using implementation-compatible values such as `kty: "EC"` and
-`crv: "SM2"`. Where `publicKeyMultibase` is used, the key encoding profile MUST
-be sufficient for the verifier to reconstruct the SM2 public key.
-
-Support for `sm2-sm3` is part of the OAN method profile because OAN deployments
-may need national-cryptography-compatible signing and verification.
 
 ### 10.17 Services
 
@@ -954,29 +941,37 @@ Accordingly, for `did:oan`:
   SHOULD be expressed in DID resolution metadata.
 
 `created` and `updated` SHOULD normally be expressed as DID document metadata.
-For the current OAN profile, a production registration document MUST include a
-top-level `proof` object. The proof covers the complete DID Document content
-except the proof field itself; the resulting complete-document hash includes
-the attached proof. A change to any signed field requires regenerating the proof
-and the operation authorization evidence bound to the final hash.
+For `did:oan`, a published DID Document MUST include a top-level `proof`
+object. The proof covers the complete DID Document according to the
+Ed25519Signature2020 Data Integrity processing rules. A change to any signed
+field requires regenerating the proof. Any additional operation-authorization
+evidence is outside the DID method and MUST NOT be confused with the DID
+Document proof.
 
-The profile-v2 top-level proof MUST contain the following non-empty string
-properties:
+The top-level proof MUST contain the following non-empty properties:
 
 | Property | Meaning |
 | --- | --- |
 | `type` | Proof type identifier. |
-| `creator` | DID URL of the signing verification method. |
 | `created` | RFC 3339 proof creation time. |
-| `proofPurpose` | Proof purpose; profile-v2 uses `assertionMethod`. |
+| `proofPurpose` | Proof purpose; the normal DID Document proof uses `assertionMethod`. |
 | `verificationMethod` | DID URL of the signing verification method. |
-| `cryptoSuite` | OAN signing and hashing suite identifier. |
-| `hashAlgorithm` | Hash algorithm used by the proof profile. |
-| `proofValue` | Encoded proof value. |
+| `proofValue` | Multibase-encoded Ed25519 Data Integrity proof value. |
 
-For profile-v2, `creator` MUST equal `verificationMethod`, and the referenced
-verification method MUST be present in the DID Document and in the
-`assertionMethod` relationship.
+The proof `type` MUST be `Ed25519Signature2020`. The `verificationMethod` MUST
+refer to the current DID Document's `DID#key-1` verification method, and that
+method MUST be present in the `assertionMethod` relationship. The proof MUST
+omit `creator`, `cryptoSuite`, and `hashAlgorithm`.
+
+The proof is created by applying the Ed25519Signature2020 Data Integrity
+processing rules to the DID Document. The suite determines the proof options,
+canonicalization, signature input, and verification procedure; implementations
+MUST NOT substitute an OAN-specific canonical JSON or signature procedure.
+`proofValue` MUST use the Multibase encoding required by that suite (normally a
+`z`-prefixed base58-btc value). A verifier MUST validate the proof options,
+verification method, public key, and signature before accepting the document.
+Resource hashes such as `packageHash` and `metadataHash` are independent
+content digests and MUST NOT be interpreted as proof-suite declarations.
 
 ## 12. State and Control Model
 
@@ -1030,8 +1025,10 @@ service, or other server-side logic.
 
 ## 13. Method Operations
 
-`did:oan` supports the standard DID lifecycle concepts of creation, update, and
-deactivation, but specializes them for OAN resource identities.
+`did:oan` defines the method-specific requirements for creating, resolving,
+updating, recovering, suspending, revoking authorization, and deactivating a
+DID. The concrete transport, persistence, and authorization workflow are
+implementation-specific.
 
 The standard DID Method operations are:
 
@@ -1040,7 +1037,8 @@ The standard DID Method operations are:
 - Update
 - Deactivate
 
-The method also defines method-specific operations such as:
+The method defines the semantics of the following additional state transitions;
+it does not require a particular API or transaction format for invoking them:
 
 - Recovery
 - Delegate Capability
@@ -1050,30 +1048,29 @@ The method also defines method-specific operations such as:
 
 ### 13.1 Create
 
-Creation establishes a new DID record.
+Creation establishes a new DID record in the method's authoritative storage.
 
 At creation time:
 
 - the DID MUST be unique;
 - the method-specific identifier MUST conform to Section 8;
 - the DID Document MUST contain the DID subject in `id`;
-- `oanMetadata.subjectType` and `oanMetadata.resourceType` MUST be set for
-  discoverable Agent Service, Skill, MCP Server, and Tool / API resources;
+- `oanMetadata.subjectType` and `oanMetadata.resourceType` MUST be set when the
+  DID Document claims one of the method-defined OAN resource categories;
 - semantic discovery information SHOULD be present for discoverable resources;
 - and required signatures or controller authorizations MUST validate.
 
 If recovery authority is defined at creation time, it SHOULD be distinguishable
 from normal authentication authority.
 
-Creation authorization MUST be defined by the applicable OAN registrar, Root, or
-deployment governance policy. A creation request MUST be rejected if it cannot
-prove control over the initial controller material or satisfy the creation
-authority required by the deployment. For a resource issued by a Registrar, the
-resource `routing-code` MUST equal the first five Base58 characters of that
-Registrar DID's `suffix-code`. For an infrastructure DID issued under Root
-authorization, the corresponding Root-derived routing rule applies. These
-same-layer issuance checks are outside DID resolution and are not inferred from
-the identifier alone.
+Creation authorization MUST be defined by the applicable authorization system.
+A creation request MUST be rejected if it cannot prove control over the initial
+controller material or satisfy the authority required by that system.
+When a resource is issued by a Registrar, its `routing-code` MUST equal the
+first five Base58 characters of that Registrar DID's `suffix-code`. When an
+infrastructure DID is issued under an authorizing Root, the corresponding
+Root-derived routing rule applies. These issuance checks are outside DID
+resolution and MUST NOT be inferred from the identifier alone.
 
 ### 13.2 Read (Resolve)
 
@@ -1167,8 +1164,8 @@ and was later revoked, where legally and operationally appropriate.
 trusted use.
 
 For OAN infrastructure or governed resource subjects, authoritative suspension
-SHOULD be reflected by OAN Root and bulletin evidence. DID Document
-`lifecycleState` is only a local hint unless supported by authoritative
+SHOULD be reflected by the applicable external authorization system. DID
+Document `lifecycleState` is only a local hint unless supported by authoritative
 evidence.
 
 ### 13.8 Revoke Authorization
@@ -1253,15 +1250,15 @@ enough information for an external verifier to:
 5. inspect associated address bindings;
 6. inspect semantic description and capability tags;
 7. inspect protocol bindings and credential requirements;
-8. inspect package and Root proof references;
+8. inspect package and external authorization-proof references;
 9. and inspect any model-fingerprint bindings relevant to the subject.
 
 Resolvers SHOULD make the trust basis of their responses clear. Where possible,
-resolution responses SHOULD expose or reference the registry state, Root proof,
-bulletin proof, package hash, signature, or other evidence used to determine
-the current DID Document and DID document metadata. Relying parties SHOULD NOT
-assume that an unauthenticated resolver response is authoritative merely because
-it is syntactically valid.
+resolution responses SHOULD expose or reference registry or authorization
+evidence, package hash, signature, or other evidence used to determine the
+current DID Document and DID document metadata. Relying parties SHOULD NOT
+assume that an unauthenticated resolver response is authoritative merely
+because it is syntactically valid.
 
 If resolution fails, the resolver MUST return DID Resolution Metadata containing
 an `error` value and MUST NOT return a document that could be mistaken for a
@@ -1279,7 +1276,7 @@ metadata when a representation is returned.
 
 ## 15. Discovery and Distribution Semantics
 
-OAN Discovery nodes SHOULD index DID Documents using:
+Applications that implement semantic discovery MAY index DID Documents using:
 
 - `oanMetadata.subjectType`;
 - `oanMetadata.resourceType`;
@@ -1290,35 +1287,19 @@ OAN Discovery nodes SHOULD index DID Documents using:
 - `oanMetadata.packageInfo`;
 - and deployment-approved `attributes`.
 
-Discovery indexes SHOULD include the latest active package version and MAY keep
-historical package-version entries when deployment policy allows versioned
-lookup. A semantic query without an explicit version constraint SHOULD return
-the latest active version of each matching resource by default. A query with a
-version constraint MAY return a historical version if the version remains
-authorized, resolvable, and verifiable.
-
-For Agent Service, MCP Server, and Tool / API subjects, discovery normally
-returns a callable resource candidate. For Skill subjects, discovery normally
-returns a capability candidate that may require downloading a Skill package or
-resolving implementation links before invocation.
-
-Discovery nodes SHOULD return verifiable artifact references for Skill files or
-resource packages, including URLs, versions, hashes, lifecycle state, and Root
-proof references where available. Discovery nodes SHOULD NOT be modeled as
-artifact hosts, caches, proxies, or download services for DID
-Document-external payloads. Relying parties MUST verify Root proof, package
-hashes, publisher signatures, and relevant authorization state before trusted
-use. For versioned downloads from an external location, relying parties MUST
-verify that the downloaded payload hash matches the returned package version
-and Root proof.
+Applications MAY index package versions and historical metadata according to
+their own policy. This method does not define query syntax, result ordering,
+version selection, Root-to-Discovery distribution, CDN behavior, or artifact
+hosting. Relying parties remain responsible for verifying signatures, content
+hashes, controller authorization, and any external authorization evidence
+before trusted use.
 
 ## 16. DID Document Examples
 
 The examples in this section focus on subject, service, and OAN metadata
-structure. A production registration document MUST additionally include the
-top-level `proof` and follow the proof/hash ordering defined in Sections 10 and
-11; abbreviated examples MUST NOT be interpreted as proof-free production
-documents.
+structure. A published DID Document MUST additionally include the top-level
+`proof` and follow the proof processing defined in Sections 10 and 11;
+abbreviated examples MUST NOT be interpreted as proof-free documents.
 
 ### 16.1 Agent Service Example
 
@@ -1326,7 +1307,8 @@ documents.
 {
   "@context": [
     "https://www.w3.org/ns/did/v1",
-    "https://w3id.org/oan/v1"
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
   ],
   "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
   "controller": "did:oan:2Xr85:4FvNq8Zp2XcR6tYa3Mb7Ws9DhK5GjLeU",
@@ -1335,20 +1317,7 @@ documents.
       "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#key-1",
       "type": "Ed25519VerificationKey2020",
       "controller": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
-      "cryptoSuite": "ed25519-sha256",
       "publicKeyMultibase": "z6Mkexample"
-    },
-    {
-      "id": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz#sm2-1",
-      "type": "SM2VerificationKey2020",
-      "controller": "did:oan:2Xr85:7YpQm9Kx2VnRb6Ts3WfHa4Cd5Ej8LgNz",
-      "cryptoSuite": "sm2-sm3",
-      "publicKeyJwk": {
-        "kty": "EC",
-        "crv": "SM2",
-        "x": "example-sm2-x-coordinate",
-        "y": "example-sm2-y-coordinate"
-      }
     }
   ],
   "authentication": [
@@ -1418,7 +1387,8 @@ documents.
 {
   "@context": [
     "https://www.w3.org/ns/did/v1",
-    "https://w3id.org/oan/v1"
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
   ],
   "id": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
   "controller": "did:oan:2Xr85:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
@@ -1427,7 +1397,6 @@ documents.
       "id": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu#key-1",
       "type": "Ed25519VerificationKey2020",
       "controller": "did:oan:2Xr85:5HkPq7Vm3RdT9Ya2WcX8Ns4Bf6GjLeZu",
-      "cryptoSuite": "ed25519-sha256",
       "publicKeyMultibase": "z6Mkskillexample"
     }
   ],
@@ -1491,7 +1460,8 @@ documents.
 {
   "@context": [
     "https://www.w3.org/ns/did/v1",
-    "https://w3id.org/oan/v1"
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
   ],
   "id": "did:oan:2Xr85:3NqV7Yp5TxRb9Wc2Md6Za4Ef8GhKsJuL",
   "controller": "did:oan:2Xr85:8LcR3Vn5YpQw2Tx7Mb9Zd4Fa6GhKsEuJ",
@@ -1541,7 +1511,8 @@ documents.
 {
   "@context": [
     "https://www.w3.org/ns/did/v1",
-    "https://w3id.org/oan/v1"
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
   ],
   "id": "did:oan:2Xr85:7BcD3Fg5HjK8Mn9Pq2Rs4Tv6WxYzA1Ee",
   "controller": "did:oan:2Xr85:2QwR6Ty8VpXc3Mb7Nz4Fd9Gh5KsJeLuA",
@@ -1618,9 +1589,8 @@ unauthorized controller replacement.
 ### 18.2 Resource Misrepresentation
 
 A DID subject may falsely describe its capabilities, endpoints, schemas, or
-examples. Relying parties SHOULD verify Root proof, package hashes, publisher
-signatures, VC evidence, service authorization, and runtime behavior where
-appropriate.
+examples. Relying parties SHOULD verify package hashes, publisher signatures,
+VC evidence, service authorization, and runtime behavior where appropriate.
 
 ### 18.3 Delegation Abuse
 
@@ -1631,7 +1601,7 @@ silently exceed the intended scope.
 ### 18.4 Resolver Trust
 
 Resolvers SHOULD NOT be treated as the sole source of truth. Relying parties
-SHOULD verify controller keys, delegation evidence, Root proof references,
+SHOULD verify controller keys, delegation evidence, authorization references,
 package hashes, and important metadata where possible.
 
 Resolver operators SHOULD protect against cache poisoning, stale-state replay,
@@ -1646,8 +1616,7 @@ SHOULD protect against stale, malicious, or unauthorized endpoint reassignment.
 Service endpoints can reveal network locations and can redirect relying parties
 to attacker-controlled systems if improperly updated. Relying parties SHOULD
 verify that service endpoints are bound to the DID subject through controller
-authorization, VC evidence, package proof, or deployment governance evidence
-where appropriate.
+authorization, VC evidence, package proof, or other authoritative evidence.
 
 ### 18.6 Model-Fingerprint Misrepresentation
 
@@ -1660,8 +1629,8 @@ assurance than the fingerprinting method actually provides.
 For downloadable Skills or callable services, the provider MAY require the
 requester to present VC evidence or signed OAN envelopes before download,
 invocation, or session setup. Requesters SHOULD also verify provider DID
-Documents, Root proof, package hash, endpoint binding, and current authorization
-state before trusted use.
+Documents, package hash, endpoint binding, and current authorization state
+before trusted use.
 
 ### 18.8 Identifier Confusion and Normalization
 
@@ -1681,14 +1650,14 @@ values from `routing-code`.
 Attackers may attempt to replay an old DID Document, serve a stale package as
 the latest active release, replace a package while preserving a version string,
 or exploit ambiguity in hash algorithms. Relying parties SHOULD verify the
-latest active version status, package hash, metadata hash, Root proof, hash
-algorithm, and lifecycle state before download or invocation.
+latest active version status, package hash, metadata hash, hash algorithm, and
+lifecycle state before download or invocation.
 
-Discovery nodes SHOULD protect latest-version indexes against stale-state
-replay and SHOULD make historical-version responses explicit. Implementations
-SHOULD reject a package or manifest when its declared version, package hash,
-metadata hash, or Root proof does not match the DID Document or Discovery
-response used to obtain it.
+Applications that maintain package indexes SHOULD protect them against
+stale-state replay and SHOULD make historical-version responses explicit.
+Implementations SHOULD reject a package or manifest when its declared version,
+package hash, or metadata hash does not match the DID Document or response used
+to obtain it.
 
 ### 18.10 Extension Property Misuse
 
@@ -1739,9 +1708,9 @@ Tools, APIs, or Agent Services are involved.
 
 If `did:oan` is submitted to the W3C DID Method Registry, the registration
 SHOULD emphasize that the method is intended for unified identification,
-semantic description, trusted discovery, service binding, delegated control,
-recovery-aware operations, national-cryptography-compatible verification, and
-authenticated use of Agent ecosystem resources.
+semantic description, service binding, delegated control, recovery-aware
+operations, Ed25519 verification, and authenticated use of Agent ecosystem
+resources.
 
 ## 21. Conclusion
 
@@ -1752,9 +1721,9 @@ authenticated use of Agent ecosystem resources.
 - semantic description and capability tags for Discovery;
 - service, manifest, download, and invocation endpoint discovery;
 - controller, delegation, recovery, and VC-backed trust semantics;
-- Root-verified package and bulletin-aware lifecycle references;
+- package-integrity and lifecycle references;
 - optional model-fingerprint bindings;
-- and OAN-compatible cryptographic suites including SM2/SM3.
+- and Ed25519 Data Integrity proofs.
 
 These properties make the method suitable for an identity system in which many
 forms of Agent ecosystem products must remain identifiable, controllable,
