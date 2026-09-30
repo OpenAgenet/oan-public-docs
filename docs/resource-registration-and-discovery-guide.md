@@ -150,12 +150,9 @@ matching resource type, service type, endpoint, and protocol binding.
   },
   "proof": {
     "type": "Ed25519Signature2020",
-    "creator": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1",
     "created": "REPLACE_WITH_RFC3339_TIME",
     "proofPurpose": "assertionMethod",
     "verificationMethod": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX#key-1",
-    "cryptoSuite": "ed25519-sha256",
-    "hashAlgorithm": "sha256",
     "proofValue": "REPLACE_WITH_PROOF"
   }
 }
@@ -174,8 +171,10 @@ Prepare and validate the DID Document before submitting it to a Registrar:
 - external artifacts have declared hashes;
 - version fields are explicit;
 - the top-level proof verifies after removing only the proof field;
-- the top-level proof contains `creator`, `verificationMethod`, `cryptoSuite`,
-  and `hashAlgorithm`, and `creator` equals `verificationMethod`;
+- the top-level proof contains `type`, `created`, `proofPurpose`,
+  `verificationMethod`, and `proofValue`; `verificationMethod` is the
+  document's `#key-1` method, and the proof does not contain the legacy
+  `creator`, `cryptoSuite`, or `hashAlgorithm` members;
 - the submitted DID Document hash equals the hash of the complete document,
   including proof and external identifiers.
 
