@@ -76,7 +76,11 @@ matching resource type, service type, endpoint, and protocol binding.
 
 ```json
 {
-  "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/oan/v1"],
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
+  ],
   "id": "did:oan:K7mQ9:REPLACE_WITH_32_CHAR_SUFFIX",
   "controller": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX",
   "verificationMethod": [
