@@ -162,9 +162,24 @@ When a `did:oan` DID Document is represented as JSON-LD:
 
 - it MUST include `@context`;
 - it MUST include `id`;
-- and the `@context` value MUST include `https://www.w3.org/ns/did/v1`.
+- and the `@context` value MUST be exactly the following ordered array:
 
-When OAN-specific properties are used, the `@context` value MUST include:
+  ```json
+  [
+    "https://www.w3.org/ns/did/v1",
+    "https://openagenet.xyz/did-oan-specs/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
+  ]
+  ```
+
+The three entries MUST appear exactly once and in the order shown. A conforming
+`did:oan` JSON-LD DID Document MUST NOT add, remove, or reorder context entries.
+This fixed context set is a method requirement, not a requirement for every
+other representation supported by an implementation.
+
+The OAN-specific properties defined by this specification use the second
+context entry, and the baseline proof uses the third context entry. The
+complete required context set is:
 
 ```json
 [
@@ -275,6 +290,7 @@ values remain available as DID Document `oanMetadata.subjectType` and
 | `discovery_node` | OAN Discovery node | `discovery_node` |
 | `cdn_node` | OAN CDN or publication node | `cdn_node` |
 | `vc_issuer_node` | OAN-governed VC issuer node | `vc_issuer_node` |
+| `controller` | Self-controlled person, organization, team, or other controller subject | `controller` |
 | `organization` | Organization or operator subject | `organization` |
 | `developer` | Developer or individual operator subject | `developer` |
 | `unspecified` | Other or not-yet-classified subject | `unspecified` |
@@ -282,6 +298,11 @@ values remain available as DID Document `oanMetadata.subjectType` and
 The values in this table are the initial OAN enumeration. A future OAN
 specification MAY extend the enumeration;
 such an extension MUST NOT change the meaning of `routing-code` or `suffix-code`.
+
+The `controller`/`controller` combination identifies a generic self-controlled
+controller subject. It does not classify whether the controller is a person,
+organization, team, or another kind of entity; that distinction, if needed,
+belongs in application metadata or an external profile.
 
 ### 8.3 ABNF
 
@@ -354,7 +375,7 @@ The OAN identifier generation process is:
    hash or extendable-output function over stable controller material, such as:
 
    ```text
-   OAN-DID-SUFFIX-v2 || routing-code || canonical-controller-public-key || optional-nonce
+   OAN-DID-SUFFIX || routing-code || canonical-controller-public-key || optional-nonce
    ```
 
    The byte stream MUST then be mapped to the Base58 alphabet without modulo
@@ -448,10 +469,19 @@ particular, a valid representation MUST include:
 
 - `@context`
 - `id`
-- a top-level `controller` relationship when the subject is controlled by a
-  separate DID;
-- at least one applicable verification method and relationship; and
+- a top-level `controller` relationship;
+- at least one applicable verification method;
+- at least one `authentication` relationship containing an applicable
+  verification method;
+- at least one `assertionMethod` relationship containing an applicable
+  verification method; and
 - a top-level `proof` for a published DID Document.
+
+For a self-controlled DID, the top-level `controller` MUST be the document's
+own `id`. For a DID controlled by another subject, the top-level `controller`
+MUST identify that external controller DID. This is an OAN method requirement
+for published `did:oan` documents and is stricter than the minimum needed by
+DID Core for some self-controlled documents.
 
 The `id` value MUST be the canonical `did:oan` DID that identifies the DID
 subject. A DID Document MUST NOT use OAN method-specific metadata to override
@@ -461,9 +491,20 @@ the DID Core meaning of `id`, `controller`, `verificationMethod`,
 
 When the top-level `controller` is a different DID, that controller DID SHOULD
 resolve to a DID Document whose `controller` is itself and whose verification
-relationships expose the public key used to authorize the controlled document.
+relationships expose the public key used for controller authorization. The
+controlled document's own DID proof and the external controller's authorization
+proof are separate proofs:
+
+1. the DID Document proof MUST be signed with the subject DID's
+   `DID#key-1` verification method; and
+2. a controller authorization proof, when required by an application or
+   issuance workflow, MUST be signed with the external controller DID's
+   verification method and MUST bind the controller, subject DID, signed
+   document or document hash, purpose, and any applicable scope.
+
 The controller DID and its document are separate from any registration or
-authorization credential.
+authorization credential. A controller authorization proof MUST NOT be
+substituted for the DID Document proof.
 
 The document MAY also include standard DID Core properties such as:
 
@@ -499,8 +540,8 @@ The `oanMetadata` object MAY contain:
 
 | Property | Type | Required | Description |
 | --- | --- | --- | --- |
-| `subjectType` | string | Recommended | Subject type, such as `agent_service`, `skill`, `mcp_server`, `tool_api`, `infrastructure_node`, `organization`, or `developer`. |
-| `resourceType` | string | Recommended | Resource type used for OAN discovery and indexing. For the four initial product forms, use `agent_service`, `skill`, `mcp_server`, or `tool_api`. |
+| `subjectType` | string | Recommended | Subject type, such as `agent_service`, `skill`, `mcp_server`, `tool_api`, `infrastructure_node`, `controller`, `organization`, or `developer`. |
+| `resourceType` | string | Recommended | Resource type used for OAN discovery and indexing. For the four initial product forms, use `agent_service`, `skill`, `mcp_server`, or `tool_api`; a self-controlled generic controller uses `controller`. |
 | `identityType` | string | Optional | Deployment-specific identity classification. |
 | `controllerDid` | string | Optional | DID of the subject that controls, operates, or publishes this resource when different from `id` or DID Core `controller`. |
 | `publisherDid` | string | Optional | DID of the resource publisher. |
@@ -734,6 +775,17 @@ Registrars, Discovery nodes, and relying parties MUST NOT compare hash values
 without knowing the hash algorithm and canonical byte representation being
 hashed.
 
+The fields listed in the `packageInfo` table are the method-defined package
+metadata fields. An algorithm name is carried by the hash value itself (for
+example, `sha256:<hex>`); `packageInfo` MUST NOT require a second
+`hashAlgorithm` field to interpret `packageHash` or `metadataHash`.
+`schemaUrl` is not a `packageInfo` field in this method. A schema reference
+SHOULD be expressed through `resourceDescription`, `protocolBindings` (for
+example, `schemaRef`), or another explicitly defined method extension.
+References to a bulletin, governance transaction, or deployment-specific
+publication record are likewise external application metadata and MUST NOT be
+treated as required `did:oan` package fields.
+
 The DID Document SHOULD contain discovery summaries and verifiable references
 to manifests or packages rather than embedding complete Skill packages, API
 specifications, or executable artifacts. Inline metadata is appropriate for
@@ -890,8 +942,10 @@ The baseline verification method type defined by this specification is:
 
 - `Ed25519VerificationKey2020`
 
-At least one verification method referenced from `authentication` or
-`assertionMethod` SHOULD be present unless the DID is permanently deactivated.
+At least one verification method MUST be referenced from `authentication` and
+at least one verification method MUST be referenced from `assertionMethod`,
+unless the DID is permanently deactivated. For an active published document,
+the `DID#key-1` method used by the document proof MUST be referenced by both.
 
 Ed25519 verification material MUST be sufficient for a verifier to reconstruct
 the public key. A JWK representation MUST use `kty: "OKP"` and
@@ -988,6 +1042,11 @@ MUST NOT substitute an OAN-specific canonical JSON or signature procedure.
 verification method, public key, and signature before accepting the document.
 Resource hashes such as `packageHash` and `metadataHash` are independent
 content digests and MUST NOT be interpreted as proof-suite declarations.
+
+The `authentication` and `assertionMethod` relationships are both required by
+the OAN baseline. The `DID#key-1` verification method used by the DID Document
+proof MUST occur in both relationships. A separate external controller
+authorization proof does not change which method signs the DID Document proof.
 
 ## 12. State and Control Model
 
@@ -1323,7 +1382,11 @@ before trusted use.
 The examples in this section focus on subject, service, and OAN metadata
 structure. A published DID Document MUST additionally include the top-level
 `proof` and follow the proof processing defined in Sections 10 and 11;
-abbreviated examples MUST NOT be interpreted as proof-free documents.
+the examples are intentionally abbreviated, non-normative structural fragments,
+and MUST NOT be interpreted as standalone conforming DID Documents. In
+particular, an implementation MUST add every required relationship,
+verification method, controller value, and proof before publishing an example
+shape as a DID Document.
 
 ### 16.1 Agent Service Example
 
