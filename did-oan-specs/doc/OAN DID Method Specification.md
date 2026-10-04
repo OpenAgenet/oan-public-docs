@@ -192,6 +192,10 @@ complete required context set is:
 The OAN method context is `https://openagenet.xyz/did-oan-specs/v1`.
 The Ed25519 security-suite context is part of the required `did:oan` JSON-LD
 context set and MUST be present in conforming `did:oan` DID Documents.
+Within the OAN method context, `externalIdentifiers` is defined as an array of
+objects whose nested `id` property is an `xsd:string`. This local definition
+applies only inside an external-identifier object; it does not override the
+DID Core meaning of top-level or other global `id` properties.
 
 Implementations MAY support additional compatible representations as long as
 DID Core processing expectations remain satisfied and the method-specific
@@ -585,15 +589,23 @@ authority over the resource only when that authority is established by DID Core
 `controller`, a valid verification relationship, or independently verifiable
 authorization evidence.
 
-Each `externalIdentifiers` item MUST contain a non-empty, unique `id` that is
-not a `did:oan` identifier. An optional `resolutionServiceEndpoint` MUST be an
-absolute URI without credentials; `file:`, `data:`, and `javascript:` endpoints
-are forbidden. A document MUST contain no more than 8 items, each `id` MUST be
-at most 512 characters, each endpoint at most 1024 characters, and the
-serialized array at most 8192 bytes. These values are controller-signed
-declarations, not verified external facts. Consumers MUST NOT treat them as
-verified external facts merely because an endpoint is present, and SHOULD NOT
-resolve the endpoint as part of DID method processing.
+Each `externalIdentifiers` item MUST contain a non-empty `id` string identifying
+the subject in an external system. The value is an external system's native
+identifier, not a JSON-LD node identifier and not a DID URL; for example,
+`devil109/n8n-workflows`, `6747420043`, or
+`Beijing-YouFeng-202404280008` are valid values. The OAN JSON-LD context
+defines this nested `id` as a string and does not apply the DID Core global
+`id: @id` meaning inside this object. The value MUST NOT be a `did:oan`
+identifier. An optional `resolutionServiceEndpoint` MUST be an absolute URI
+without credentials; `file:`, `data:`, and `javascript:` endpoints are
+forbidden. Uniqueness is evaluated on the pair
+(`resolutionServiceEndpoint`, `id`), so the same native identifier MAY occur
+under different external namespaces. A document MUST contain no more than 8
+items, each `id` MUST be at most 512 characters, each endpoint at most 1024
+characters, and the serialized array at most 8192 bytes. These values are
+controller-signed declarations, not verified external facts. Consumers MUST
+NOT treat them as verified external facts merely because an endpoint is
+present, and SHOULD NOT resolve the endpoint as part of DID method processing.
 
 The top-level `proof` MUST use the proof structure in Section 11 and cover the
 complete DID Document according to the Ed25519Signature2020 Data Integrity

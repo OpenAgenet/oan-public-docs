@@ -111,7 +111,7 @@ matching resource type, service type, endpoint, and protocol binding.
     "publisherDid": "did:oan:P9aBc:REPLACE_WITH_CONTROLLER_SUFFIX",
     "externalIdentifiers": [
       {
-        "id": "urn:example:skill:123",
+        "id": "example-skill-123",
         "resolutionServiceEndpoint": "https://example.org/resolve"
       }
     ],
