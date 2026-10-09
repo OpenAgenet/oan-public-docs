@@ -592,8 +592,7 @@ authorization evidence.
 Each `externalIdentifiers` item MUST contain a non-empty `id` string identifying
 the subject in an external system. The value is an external system's native
 identifier, not a JSON-LD node identifier and not a DID URL; for example,
-`devil109/n8n-workflows`, `6747420043`, or
-`Beijing-YouFeng-202404280008` are valid values. The OAN JSON-LD context
+`devil109/n8n-workflows` or `6747420043` are valid values. The OAN JSON-LD context
 defines this nested `id` as a string and does not apply the DID Core global
 `id: @id` meaning inside this object. The value MUST NOT be a `did:oan`
 identifier. An optional `resolutionServiceEndpoint` MUST be an absolute URI
@@ -606,6 +605,27 @@ characters, and the serialized array at most 8192 bytes. These values are
 controller-signed declarations, not verified external facts. Consumers MUST
 NOT treat them as verified external facts merely because an endpoint is
 present, and SHOULD NOT resolve the endpoint as part of DID method processing.
+
+The following examples illustrate external identifiers from two widely used
+identification schemes: an Industrial Internet identifier and an Object
+Identifier (OID), respectively. The endpoints are illustrative lookup-service
+URIs; their inclusion does not establish that the identifiers are registered or
+bound to the DID subject.
+
+```json
+{
+  "externalIdentifiers": [
+    {
+      "id": "88.111.1/100000234567AB11AAAAALB",
+      "resolutionServiceEndpoint": "https://www.idcode.org.cn"
+    },
+    {
+      "id": "1.2.840.113549.1.1.1",
+      "resolutionServiceEndpoint": "https://oidref.com"
+    }
+  ]
+}
+```
 
 The top-level `proof` MUST use the proof structure in Section 11 and cover the
 complete DID Document according to the Ed25519Signature2020 Data Integrity
