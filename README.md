@@ -19,8 +19,8 @@ public research material.
 - [Resource registration and discovery guide](docs/resource-registration-and-discovery-guide.md)
 - [did:oan method specification](did-oan-specs/doc/OAN%20DID%20Method%20Specification.md)
 - [Error codes](docs/error-codes.md)
-- [White paper](papers/OAN-White-Paper.pdf)
-- [Yellow paper](papers/OAN-Yellow-Paper.pdf)
+- [White paper v1.1](papers/OAN-White-Paper-v1.1.pdf)
+- [Yellow paper v1.1](papers/OAN-Yellow-Paper-v1.1.pdf)
 - [Chinese and English slides](docs/slides/)
 
 The official public website is <https://www.openagenet.xyz>. Its Docs page
